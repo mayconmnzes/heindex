@@ -1,0 +1,428 @@
+/* Código Completo - Adiciona apenas a nova regra no final */
+
+/* Estilo Global */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f0f2f5;
+  color: #1c1e21;
+}
+
+/* NOVO LAYOUT PRINCIPAL: Exibe Sidebar e Conteúdo lado a lado */
+.App-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* O conteúdo principal que se ajusta ao lado do Sidebar */
+.main-content-layout {
+  flex-grow: 1;
+  padding: 0;
+  padding: 10px 20px;
+}
+
+/* A classe .main-content (Usada nas Pages) */
+.main-content {
+    padding: 1rem 0;
+    margin: 0;
+    width: 100%;
+}
+
+/* Estrutura dos Módulos */
+.container {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.form-section, .list-section {
+  background-color: #ffffff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.form-section {
+  flex: 1;
+}
+
+.list-section {
+  flex: 2;
+  /* Garante que list-section possa diminuir se necessário */
+  min-width: 0;
+}
+
+
+h1, h2 {
+  color: #1c1e21;
+}
+
+h2 {
+  border-bottom: 1px solid #dddfe2;
+  padding-bottom: 10px;
+  margin-top: 0;
+}
+
+/* Formulários */
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+input, select, textarea {
+  padding: 10px;
+  margin-bottom: 1rem; /* Margem inferior padrão */
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box; /* Inclui padding e border na largura total */
+  width: 100%; /* Ocupa toda a largura disponível por padrão */
+}
+textarea {
+    min-height: 80px; /* Altura mínima para textareas */
+    resize: vertical; /* Permite redimensionar verticalmente */
+}
+
+label {
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: block; /* Garante que o label fique acima do input */
+}
+
+button {
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: #007bff;
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 1rem;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+.checkbox-container input[type="checkbox"] {
+    width: auto; /* Checkbox não precisa ocupar 100% */
+    margin-bottom: 0;
+}
+.checkbox-container label {
+    margin-bottom: 0; /* Label ao lado do checkbox */
+    font-weight: normal;
+}
+
+
+/* Layout Grid para Agrupamentos */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3rem;
+  width: 100%;
+}
+@media (max-width: 900px) { /* Em telas menores, empilha as colunas */
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+
+
+/* Regras de Agrupamento com Fieldset */
+.form-fieldset {
+    border: 1px solid #dddfe2;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 0; /* Remove margem inferior padrão */
+}
+
+.form-fieldset legend {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #007bff;
+    padding: 0 10px;
+    margin-left: -5px;
+}
+
+/* --- REGRA CRÍTICA DE ALINHAMENTO INTERNO (SUB-GRID) --- */
+.form-sub-grid {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    align-items: center;
+    gap: 10px 15px; /* Espaçamento vertical e horizontal */
+    margin-bottom: 0;
+}
+/* Em telas menores, muda para 1 coluna */
+@media (max-width: 600px) {
+    .form-sub-grid {
+        grid-template-columns: 1fr;
+        gap: 5px 15px; /* Reduz espaçamento vertical */
+    }
+    .form-sub-grid label {
+        text-align: left !important; /* Alinha labels à esquerda */
+        margin-bottom: 0.2rem;
+    }
+}
+
+
+.form-sub-grid label {
+    margin-bottom: 0;
+    text-align: right;
+}
+
+.form-sub-grid input,
+.form-sub-grid select,
+.form-sub-grid textarea {
+    margin-bottom: 0 !important;
+    width: 100%;
+}
+
+
+/* Tabelas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #dddfe2;
+  text-align: left;
+  vertical-align: middle; /* Centraliza verticalmente */
+  word-break: break-word; /* Quebra palavras longas */
+}
+
+
+th {
+  background-color: #f5f6f7;
+  font-weight: bold;
+  font-size: 0.9rem;
+  position: sticky; /* Cabeçalho fixo */
+  top: 0; /* Fixa no topo do container */
+  z-index: 10; /* Garante que fique sobre o conteúdo */
+}
+
+tbody tr:hover {
+  background-color: #f5f6f7;
+}
+
+/* Pílulas de Status */
+.status {
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: white;
+  text-transform: uppercase;
+  display: inline-block;
+  white-space: nowrap; /* Evita quebra de linha no status */
+  text-align: center;
+}
+
+/* Cores dos Status da OS */
+.status-agendada { background-color: #007bff; }
+.status-em-execucao { background-color: #ffc107; color: #333; }
+.status-aguardando-validacao { background-color: #fd7e14; } /* Laranja mais forte */
+.status-concluida { background-color: #6c757d; }
+.status-pendente-de-correcao { background-color: #dc3545; }
+.status-reagendada-pendente-justificativa { background-color: #ffc107; color: #333;}
+.status-bloqueada-acao-urgente { background-color: #dc3545; animation: pulse-red 1s infinite alternate;}
+
+/* --- ALERTAS E UTILIDADES --- */
+.request-late-alert { background-color: #ffcccc !important; font-weight: bold; }
+.tool-alert { background-color: #fff3cd !important; font-weight: bold; }
+
+/* Filtros */
+.filter-container {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end; /* Alinha itens na base */
+  margin-bottom: 1rem;
+  flex-wrap: wrap; /* Permite que filtros quebrem linha */
+}
+.filter-container > div { /* Estilo para cada grupo label+select */
+    flex: 1; /* Tenta ocupar espaço igual */
+    min-width: 200px; /* Largura mínima antes de quebrar */
+}
+.filter-container label {
+  font-weight: bold;
+  margin-bottom: 0.3rem; /* Pequeno espaço acima do select */
+  display: block;
+}
+.filter-container select {
+  margin-bottom: 0;
+  width: 100%; /* Ocupa toda largura do div pai */
+}
+
+/* Adicionador de Itens (Checklist, Fotos) */
+.item-adder {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1rem;
+  align-items: flex-end; /* Alinha input e botão na base */
+}
+.item-adder input {
+  flex-grow: 1; /* Input ocupa espaço restante */
+  margin-bottom: 0;
+}
+.item-adder button {
+    margin-top: 0; /* Remove margem padrão do botão */
+    flex-shrink: 0; /* Botão não encolhe */
+}
+
+/* Lista de Preview (Checklist, Fotos) */
+.checklist-preview {
+  list-style: decimal;
+  padding-left: 20px;
+  margin-bottom: 1rem;
+  background-color: #f5f6f7;
+  border-radius: 6px;
+  padding: 10px 10px 10px 30px;
+  max-height: 200px; /* Limita altura e adiciona scroll */
+  overflow-y: auto;
+}
+.checklist-preview li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+.checklist-preview li:last-child {
+    border-bottom: none;
+}
+.checklist-preview button {
+  background-color: #dc3545;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  line-height: 24px;
+  text-align: center;
+  margin-top: 0;
+  flex-shrink: 0; /* Botão não encolhe */
+}
+.checklist-preview span, .checklist-preview a {
+    word-break: break-all; /* Quebra URLs ou descrições longas */
+    margin-right: 10px;
+}
+
+
+/* Tabela com Scroll */
+.table-container {
+  max-height: 450px;
+  overflow-y: auto;
+  border: 1px solid #dddfe2;
+  border-radius: 6px;
+  position: relative; /* Necessário para o sticky header */
+}
+
+
+/* --- MODAL --- */
+.timeline-modal-overlay { /* Renomeado para Modal genérico */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+.timeline-modal-content { /* Renomeado para Modal genérico */
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    width: 500px; /* Largura padrão */
+    max-width: 90%;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* --- Dashboard Kanban --- */
+.dashboard-board {
+  display: flex;
+  gap: 16px;
+  margin-top: 24px;
+  overflow-x: auto; /* Permite rolar horizontalmente se não couber */
+  padding-bottom: 10px;
+  min-height: 65vh; /* Altura mínima para o quadro */
+}
+
+.status-column {
+  flex: 1; /* Faz com que cada coluna tente ocupar o mesmo espaço */
+  min-width: 280px; /* Largura mínima de cada coluna */
+  max-width: 320px; /* Largura máxima */
+  background-color: #f4f5f7;
+  border-radius: 8px;
+  padding: 8px;
+  display: flex; /* Para controlar altura do corpo */
+  flex-direction: column; /* Empilha título e corpo */
+}
+
+.status-column h3 {
+  padding: 8px;
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  color: #172b4d;
+  border-bottom: 2px solid #dfe1e6;
+  flex-shrink: 0; /* Título não encolhe */
+}
+
+.column-body {
+  flex-grow: 1; /* Corpo ocupa espaço restante */
+  overflow-y: auto; /* Scroll SÓ no corpo */
+  padding: 0 4px;
+}
+/* Estilo scrollbar */
+.column-body::-webkit-scrollbar { width: 6px; }
+.column-body::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px;}
+.column-body::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px;}
+.column-body::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+
+.os-card {
+  background-color: #ffffff;
+  border-radius: 6px;
+  border: 1px solid #ddd; /* Borda padrão */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: box-shadow 0.3s;
+}
+.os-card:hover { box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23); }
+
+.os-card h4 { margin: 0 0 8px 0; font-size: 0.95rem; }
+.os-card p { font-size: 0.85rem; margin: 4px 0; color: #5e6c84; }
+.os-card-actions { margin-top: 12px; text-align: right; }
+
+
+/* --- NOVO: Status Sugestão (Lilás/Roxo) --- */
+.status-sugestao {
+  background-color: #6f42c1; /* Cor Lilás/Roxo do Bootstrap */
+  color: white;
+}
