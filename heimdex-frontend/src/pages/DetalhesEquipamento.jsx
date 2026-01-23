@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import html2pdf from 'html2pdf.js'; // Importação da biblioteca de PDF
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const BACKEND_URL = API_BASE_URL.replace('/api', '');
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
+
+// BACKEND_URL deve ser apenas a base do Render
+const BACKEND_URL = import.meta.env.VITE_API_BASE_URL;
 
 function DetalhesEquipamento() {
     const { id } = useParams();
