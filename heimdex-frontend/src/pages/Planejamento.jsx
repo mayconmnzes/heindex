@@ -8,9 +8,9 @@ import autoTable from 'jspdf-autotable';
 
 ChartJS.register(ArcElement, Tooltip, Legend, Title);
 
-const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/equipamentos`;
-const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/usuarios`;
-const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/ordens-servico`;
+const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
+const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
+const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/ordens-servico`;
 
 function calculateDueDate(lastDateStr, frequency) {
     if (!lastDateStr || !frequency) return null;
