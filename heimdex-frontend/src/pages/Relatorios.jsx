@@ -15,13 +15,15 @@ import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const RELATORIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/relatorios`;
-const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/equipamentos`;
-const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/areas`;
-const LINHAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/linhas`;
-const MODELOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/modelos`;
-const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/estoque`;
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const RELATORIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/relatorios`;
+const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
+const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/areas`;
+const LINHAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/linhas`;
+const MODELOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/modelos`;
+const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/estoque`;
+
+// BACKEND_BASE_URL corrigida para apontar para a raiz do Render sem manipulações
+const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function Relatorios() {
     const [pecasBaixas, setPecasBaixas] = useState([]);
