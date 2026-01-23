@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_BASE_URL + '/usuarios/authenticate';
+const API_URL = ${import.meta.env.VITE_API_BASE_URL}/login
 
 // Adicionamos 'onLoginSuccess' como uma propriedade que o componente recebe
 function Login({ onLoginSuccess }) {
