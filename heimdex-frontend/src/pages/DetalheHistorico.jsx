@@ -5,8 +5,10 @@ import axios from 'axios';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 
 // URLs da API (Corrigidas com a sintaxe de Template String)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
 const EQUIPAMENTOS_API_URL = `${API_BASE_URL}/equipamentos`;
+
+const OS_API_URL = `${API_BASE_URL}/ordens-servico`;
 
 // BACKEND_BASE_URL para imagens, se mostrar fotos da OS
 // (Corrigido para usar a variável de ambiente)
