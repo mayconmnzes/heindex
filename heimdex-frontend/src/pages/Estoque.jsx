@@ -2,12 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-const AREAS_API_URL = `${API_BASE}/areas`;
-const MODELOS_API_URL = `${API_BASE}/modelos`;
-const PECAS_API_URL = `${API_BASE}/pecas`;
-const EQUIPAMENTOS_API_URL = `${API_BASE}/equipamentos`;
-const ESTOQUE_API_URL = `${API_BASE}/estoque`;
-const BACKEND_BASE_URL = API_BASE.replace('/api', '');
+
+// Adiciona o prefixo /api em todas as rotas para casar com os Controllers Java
+const AREAS_API_URL = `${API_BASE}/api/areas`;
+const MODELOS_API_URL = `${API_BASE}/api/modelos`;
+const PECAS_API_URL = `${API_BASE}/api/pecas`;
+const EQUIPAMENTOS_API_URL = `${API_BASE}/api/equipamentos`;
+const ESTOQUE_API_URL = `${API_BASE}/api/estoque`;
+
+// Mantém a URL base limpa do Render
+const BACKEND_BASE_URL = API_BASE;
 
 function Estoque() {
     const [areas, setAreas] = useState([]);
