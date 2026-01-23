@@ -2,10 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// src/pages/Historico.jsx (ou similar)
+
+// Pega a URL base do seu .env (https://heindex-api.onrender.com)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const AREAS_API_URL = `${API_BASE_URL}/areas`;
-const LINHAS_API_URL = `${API_BASE_URL}/linhas`;
-const EQUIPAMENTOS_API_URL = `${API_BASE_URL}/equipamentos`;
+
+// Adiciona o prefixo /api em todas as rotas
+const AREAS_API_URL = `${API_BASE_URL}/api/areas`;
+const LINHAS_API_URL = `${API_BASE_URL}/api/linhas`;
+const EQUIPAMENTOS_API_URL = `${API_BASE_URL}/api/equipamentos`;
+
+// Se houver chamadas de Ordens de Serviço no Histórico, adicione também:
+const OS_API_URL = `${API_BASE_URL}/api/ordens-servico`;
 
 function Historico() {
     const [areas, setAreas] = useState([]);
