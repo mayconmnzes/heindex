@@ -3,10 +3,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/ordens-servico`;
-const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/usuarios`;
-const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/areas`;
-const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/equipamentos`;
+// Definição das URLs da API corrigidas com o prefixo /api
+const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/ordens-servico`;
+const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
+const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/areas`;
+const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
 
 
 // --- Componente OsCard (Atualizado) ---
