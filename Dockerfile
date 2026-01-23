@@ -1,19 +1,22 @@
-# ESTÁGIO 1: Build
+# Estágio de Build
 FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
-# Copia tudo para garantir que pegamos a pasta heimdex ou os arquivos na raiz
+# Copia tudo para garantir que pegamos a pasta heimdex se ela existir
 COPY . .
 
-# Comando inteligente: se existir a pasta heimdex, entra nela. Depois roda o build.
-RUN if [ -d "heimdex" ]; then cd heimdex && mvn clean package -DskipTests; \
-    else mvn clean package -DskipTests; fi
+# Verifica onde está o pom.xml e roda o build lá dentro
+RUN if [ -f "pom.xml" ]; then \
+        mvn clean package -DskipTests; \
+    elif [ -f "heimdex/pom.xml" ]; then \
+        cd heimdex && mvn clean package -DskipTests && cp target/*.jar ../target/; \
+    fi
 
-# ESTÁGIO 2: Run
+# Estágio de Execução
 FROM eclipse-temurin:17-jdk-jammy
 WORKDIR /app
 
-# Busca o arquivo JAR final onde quer que ele tenha sido gerado (raiz ou subpasta)
+# Busca o JAR gerado (na raiz ou dentro de heimdex/target)
 COPY --from=build /app/**/target/*.jar app.jar
 
 EXPOSE 8080
