@@ -3,8 +3,9 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 
 // --- CONFIGURAÇÃO DA API ---
-const API_BASE_URL = 'http://10.160.9.4:8081/api'; 
-const BACKEND_BASE_URL = 'http://10.160.9.4:8081/api';
+// import.meta.env.VITE_API_BASE_URL pegará automaticamente a URL do Render: https://heindex-api.onrender.com
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`; 
+const BACKEND_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
 
 const api = axios.create({ baseURL: API_BASE_URL });
 
