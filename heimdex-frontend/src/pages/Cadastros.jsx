@@ -4,16 +4,18 @@ import axios from 'axios';
 import MultiSelect from 'react-select'; // Ainda necessário para ChecklistModule
 
 // Definição das URLs da API
-const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/areas`;
-const LINHAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/linhas`;
-const MODELOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/modelos`;
-const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/equipamentos`;
-const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/pecas`;
-const CHECKLISTS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/checklists`;
-const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/usuarios`;
-const FOTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/fotos/upload`;
-const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/estoque`;
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+const AREAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/areas`;
+const LINHAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/linhas`;
+const MODELOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/modelos`;
+const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
+const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/pecas`;
+const CHECKLISTS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/checklists`;
+const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
+const FOTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/fotos/upload`;
+const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/estoque`;
+
+// Ajuste para o Cloudinary ou Base URL caso precise acessar a raiz
+const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Lista de Perfis para o SELECT do Frontend (Deve espelhar o PerfilUsuario.java)
 const PERFIS_DISPONIVEIS = ['ADMINISTRADOR', 'LIDER', 'TECNICO'];
