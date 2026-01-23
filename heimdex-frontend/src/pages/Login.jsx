@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const API_URL = ${import.meta.env.VITE_API_BASE_URL}/login
+// O caminho deve usar crases e estar correto conforme o seu Controller Java
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/login`;
 
 // Adicionamos 'onLoginSuccess' como uma propriedade que o componente recebe
 function Login({ onLoginSuccess }) {
