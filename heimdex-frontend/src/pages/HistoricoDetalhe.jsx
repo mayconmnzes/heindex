@@ -2,10 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 
+// Pega a URL base (https://heindex-api.onrender.com)
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const OS_API_URL = `${API_BASE_URL}/ordens-servico`;
-const EQUIP_API_URL = `${API_BASE_URL}/equipamentos`;
-const ESTOQUE_API_URL = `${API_BASE_URL}/estoque`;
+
+// Adiciona o prefixo /api obrigatório para todas as rotas
+const OS_API_URL = `${API_BASE_URL}/api/ordens-servico`;
+const EQUIP_API_URL = `${API_BASE_URL}/api/equipamentos`;
+const ESTOQUE_API_URL = `${API_BASE_URL}/api/estoque`;
 
 function HistoricoDetalhe() {
     const { id } = useParams();
