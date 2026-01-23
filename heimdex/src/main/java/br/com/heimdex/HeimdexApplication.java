@@ -17,7 +17,6 @@ public class HeimdexApplication {
     public static void main(String[] args) {
         SpringApplication.run(HeimdexApplication.class, args);
     }
-
     @Bean
     CommandLineRunner run(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         return args -> {
