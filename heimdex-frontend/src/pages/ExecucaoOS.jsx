@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/ordens-servico`;
-const FOTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/fotos/upload`;
-const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/estoque`;
-const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/usuarios`;
-const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/pecas`;
+// Definição das URLs da API com o prefixo /api obrigatório
+const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/ordens-servico`;
+const FOTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/fotos/upload`;
+const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/estoque`;
+const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
+const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/pecas`;
 
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+// Mantemos a URL base sem o /api caso precise referenciar a raiz do servidor Render
+const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function ExecucaoOS() {
     const { osId } = useParams();
