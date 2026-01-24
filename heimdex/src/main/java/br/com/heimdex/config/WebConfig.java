@@ -7,6 +7,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+@Override
+public void addResourceHandlers(ResourceHandlerRegistry registry) {
+    registry.addResourceHandler("/uploaded-photos/**")
+            .addResourceLocations("file:./uploaded-photos/");
+}
     /**
      * Configuração global de CORS.
      * Substituímos IPs fixos por padrões que funcionam tanto localmente quanto na nuvem.
