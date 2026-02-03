@@ -25,7 +25,8 @@ public class OrdemServicoService {
 
     // --- NOVO: Método que o Controller precisa para o Dashboard ---
     public List<OrdemServicoResponseDTO> listarTodas() {
-        return repository.findAll().stream()
+    // Trocamos o findAll() pelo novo método otimizado
+        return repository.findAllWithDetails().stream()
                 .map(this::convertToResponseDTO)
                 .collect(Collectors.toList());
     }
