@@ -25,8 +25,8 @@ public class PecaReposicaoController {
 
     @GetMapping
     public List<PecaReposicaoResponseDTO> getAll() {
-        // ✅ OTIMIZAÇÃO: Usando findAllWithDetails() para carregar áreas/modelos rápido
-        return pecaRepository.findAllWithDetails().stream()
+        // Usando o repositório para buscar todas as peças
+        return pecaRepository.findAll().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -39,14 +39,21 @@ public class PecaReposicaoController {
         dto.setEstoqueAtual(peca.getEstoqueAtual());
         dto.setEstoqueMinimo(peca.getEstoqueMinimo());
         dto.setLocalizacaoPrateleira(peca.getLocalizacaoPrateleira());
-        dto.setFotoUrl(peca.getFotoUrl());
-        
-        // ✅ CORREÇÃO: Enviando o Código de Requisição (Mata o N/A na tabela)
         dto.setCodigoRequisicao(peca.getCodigoRequisicao());
         dto.setDescricaoTecnica(peca.getDescricaoTecnica());
         dto.setAplicacao(peca.getAplicacao());
+        
+        // --- LÓGICA DO QR CODE ---
+        // Se não houver fotoUrl, geramos um QR Code dinâmico com o código da peça
+        if (peca.getFotoUrl() != null && !peca.getFotoUrl().isEmpty()) {
+            dto.setFotoUrl(peca.getFotoUrl());
+        } else {
+            String conteudoQR = peca.getCodigoControle() != null ? peca.getCodigoControle() : "ID-" + peca.getId();
+            dto.setFotoUrl("https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=" + conteudoQR);
+        }
 
-        // ✅ CORREÇÃO: Vinculando o Modelo para o Estoque.jsx encontrar a Área
+        // --- ASSOCIAÇÃO DE MODELO E ÁREA ---
+        // Enviamos o ID do modelo para o Frontend (Estoque.jsx) fazer o "find" na lista de modelos/áreas
         if (peca.getModeloEquipamento() != null) {
             dto.setModeloEquipamentoId(peca.getModeloEquipamento().getId());
             dto.setNomeModeloEquipamento(peca.getModeloEquipamento().getNome());
