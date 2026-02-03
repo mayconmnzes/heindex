@@ -44,11 +44,13 @@ public class EquipamentoController {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Equipamento> getEquipamentoPorId(@PathVariable Long id) {
-        return equipamentoRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping
+    public List<EquipamentoResponseDTO> getAllEquipamentos() {
+        // TROQUE: equipamentoRepository.findAll() 
+        // POR: equipamentoRepository.findAllWithDetails()
+        return equipamentoRepository.findAllWithDetails().stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
     }
 
     @PostMapping
