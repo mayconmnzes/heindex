@@ -30,10 +30,23 @@ public class OrdemServicoResponseDTO {
 
     public OrdemServicoResponseDTO() {}
     
-    // Getters manuais para blindagem contra falha do Lombok
+    // --- MÉTODOS MANUAIS CORRIGIDOS (BLINDAGEM DOCKER) ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public void setStatus(StatusOrdemServico s) { this.status = s; }
-    public void setEquipamentoNome(String n) { this.nomeEquipamento = n; }
+    public StatusOrdemServico getStatus() { return status; }
+    public void setTipoManutencao(String t) { this.tipoManutencao = t; }
+    public String getTipoManutencao() { return tipoManutencao; }
     public void setDataAgendamento(LocalDateTime d) { this.dataAgendamento = d; }
+    public LocalDateTime getDataAgendamento() { return dataAgendamento; }
+    
+    // NOME CORRIGIDO: Deve bater com o Service
+    public void setNomeEquipamento(String n) { this.nomeEquipamento = n; }
+    public String getNomeEquipamento() { return nomeEquipamento; }
+    
+    public void setCodigoEquipamento(String c) { this.codigoEquipamento = c; }
+    public String getCodigoEquipamento() { return codigoEquipamento; }
+    
+    public void setNomeTecnico(String n) { this.nomeTecnico = n; }
+    public String getNomeTecnico() { return nomeTecnico; }
 }

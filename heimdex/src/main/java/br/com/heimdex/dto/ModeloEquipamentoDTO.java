@@ -1,27 +1,27 @@
-// Código Completo
 package br.com.heimdex.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * DTO para criar e exibir Modelos de Equipamento (Tipos).
- */
 @Getter
 @Setter
 public class ModeloEquipamentoDTO {
-
     private Long id;
-    private String nome; // Ex: "SM471"
-    private String fabricante; // Ex: "Samsung"
-
-    // ID e Nome da Área à qual o modelo pertence
+    private String nome;
+    private String fabricante;
     private Long areaId;
     private String areaNome;
-
-    // Contagem de quantas instâncias (equipamentos/tags) existem
     private int quantidadeInstancias;
-    
-    // Contagem de quantas peças estão associadas
     private int quantidadePecasAssociadas;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getNome() { return nome; }
+    public void setNome(String n) { this.nome = n; }
+    public String getFabricante() { return fabricante; }
+    public void setFabricante(String f) { this.fabricante = f; }
+    public void setAreaId(Long id) { this.areaId = id; }
+    public Long getAreaId() { return areaId; }
+    public void setAreaNome(String n) { this.areaNome = n; }
+    public String getAreaNome() { return areaNome; }
 }
