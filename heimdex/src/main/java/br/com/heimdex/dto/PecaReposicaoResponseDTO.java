@@ -22,7 +22,7 @@ public class PecaReposicaoResponseDTO {
 
     public PecaReposicaoResponseDTO() {}
 
-    // Getters/Setters manuais para blindagem completa
+    // Getters/Setters manuais corrigidos e expandidos para o RelatorioController
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getNome() { return nome; }
@@ -31,8 +31,8 @@ public class PecaReposicaoResponseDTO {
     public void setCodigoControle(String c) { this.codigoControle = c; }
     public Integer getEstoqueAtual() { return estoqueAtual; }
     public void setEstoqueAtual(Integer e) { this.estoqueAtual = e; }
-    public void setEstoqueMinimo(Integer e) { this.estoqueMinimo = e; }
     public Integer getEstoqueMinimo() { return estoqueMinimo; }
+    public void setEstoqueMinimo(Integer e) { this.estoqueMinimo = e; }
     public void setLocalizacaoPrateleira(String l) { this.localizacaoPrateleira = l; }
     public String getLocalizacaoPrateleira() { return localizacaoPrateleira; }
     public void setFotoUrl(String f) { this.fotoUrl = f; }
@@ -43,4 +43,9 @@ public class PecaReposicaoResponseDTO {
     public String getNomeModeloEquipamento() { return nomeModeloEquipamento; }
     public void setFabricanteModeloEquipamento(String f) { this.fabricanteModeloEquipamento = f; }
     public String getFabricanteModeloEquipamento() { return fabricanteModeloEquipamento; }
+
+    // SETTERS EXIGIDOS PELO RELATORIOCONTROLLER
+    public void setCodigoRequisicao(String c) { this.codigoRequisicao = c; }
+    public void setDescricaoTecnica(String d) { this.descricaoTecnica = d; }
+    public void setAplicacao(String a) { this.aplicacao = a; }
 }

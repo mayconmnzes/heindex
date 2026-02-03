@@ -15,17 +15,14 @@ public class PecaBaixadaOS {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // A qual Ordem de Serviço esta peça foi baixada
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordem_servico_id", nullable = false)
     private OrdemServico ordemServico;
 
-    // A Peça de Reposição que foi usada
-    @ManyToOne(fetch = FetchType.EAGER) // EAGER para facilitar o relatório
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "peca_id", nullable = false)
     private PecaReposicao peca;
     
-    // Opcional: Referência ao Item Checklist que sugeriu essa peça
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "item_checklist_id")
     private ItemChecklist itemSugerido; 
@@ -36,9 +33,13 @@ public class PecaBaixadaOS {
     @Column(nullable = false)
     private LocalDateTime dataBaixa = LocalDateTime.now();
     
-    // Opcional: Referência à MovimentacaoEstoque de SAÍDA que deu a baixa real no estoque
-    // Isto garante rastreabilidade total
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movimentacao_estoque_id")
     private MovimentacaoEstoque movimentacao;
+
+    // SETTERS MANUAIS PARA COMPILAÇÃO GARANTIDA NO RENDER
+    public void setOrdemServico(OrdemServico os) { this.ordemServico = os; }
+    public void setPeca(PecaReposicao p) { this.peca = p; }
+    public void setQuantidadeBaixada(int q) { this.quantidadeBaixada = q; }
+    public void setMovimentacao(MovimentacaoEstoque m) { this.movimentacao = m; }
 }

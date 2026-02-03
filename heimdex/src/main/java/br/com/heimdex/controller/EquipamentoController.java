@@ -36,13 +36,7 @@ public class EquipamentoController {
     // CORREÇÃO: Injetando o Service em vez do Controller
     @Autowired private OrdemServicoService ordemServicoService;
 
-    @GetMapping
-    public List<EquipamentoResponseDTO> getAllEquipamentos() {
-        return equipamentoRepository.findAll().stream()
-                .map(this::convertToResponseDTO)
-                .collect(Collectors.toList());
-    }
-
+    
     @GetMapping
     public List<EquipamentoResponseDTO> getAllEquipamentos() {
         // TROQUE: equipamentoRepository.findAll() 
