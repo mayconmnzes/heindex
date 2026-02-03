@@ -25,7 +25,8 @@ public class PecaReposicaoController {
 
     @GetMapping
     public List<PecaReposicaoResponseDTO> getAll() {
-        return pecaRepository.findAll().stream()
+        // ✅ OTIMIZAÇÃO: Usando findAllWithDetails() para carregar áreas/modelos rápido
+        return pecaRepository.findAllWithDetails().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -38,6 +39,20 @@ public class PecaReposicaoController {
         dto.setEstoqueAtual(peca.getEstoqueAtual());
         dto.setEstoqueMinimo(peca.getEstoqueMinimo());
         dto.setLocalizacaoPrateleira(peca.getLocalizacaoPrateleira());
+        dto.setFotoUrl(peca.getFotoUrl());
+        
+        // ✅ CORREÇÃO: Enviando o Código de Requisição (Mata o N/A na tabela)
+        dto.setCodigoRequisicao(peca.getCodigoRequisicao());
+        dto.setDescricaoTecnica(peca.getDescricaoTecnica());
+        dto.setAplicacao(peca.getAplicacao());
+
+        // ✅ CORREÇÃO: Vinculando o Modelo para o Estoque.jsx encontrar a Área
+        if (peca.getModeloEquipamento() != null) {
+            dto.setModeloEquipamentoId(peca.getModeloEquipamento().getId());
+            dto.setNomeModeloEquipamento(peca.getModeloEquipamento().getNome());
+            dto.setFabricanteModeloEquipamento(peca.getModeloEquipamento().getFabricante());
+        }
+        
         return dto;
     }
 
