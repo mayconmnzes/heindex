@@ -25,8 +25,8 @@ public class PecaReposicaoController {
 
     @GetMapping
     public List<PecaReposicaoResponseDTO> getAll() {
-        // Usando o repositório para buscar todas as peças
-        return pecaRepository.findAll().stream()
+        // ✅ OTIMIZAÇÃO: Usando o método customizado para carregar tudo rápido (Join Fetch)
+        return pecaRepository.findAllWithDetails().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -39,25 +39,26 @@ public class PecaReposicaoController {
         dto.setEstoqueAtual(peca.getEstoqueAtual());
         dto.setEstoqueMinimo(peca.getEstoqueMinimo());
         dto.setLocalizacaoPrateleira(peca.getLocalizacaoPrateleira());
+        
+        // ✅ DADOS PARA O RELATÓRIO: Código de Requisição, Descrição e Aplicação
         dto.setCodigoRequisicao(peca.getCodigoRequisicao());
         dto.setDescricaoTecnica(peca.getDescricaoTecnica());
         dto.setAplicacao(peca.getAplicacao());
-        
-        // --- LÓGICA DO QR CODE ---
-        // Se não houver fotoUrl, geramos um QR Code dinâmico com o código da peça
-        if (peca.getFotoUrl() != null && !peca.getFotoUrl().isEmpty()) {
-            dto.setFotoUrl(peca.getFotoUrl());
-        } else {
-            String conteudoQR = peca.getCodigoControle() != null ? peca.getCodigoControle() : "ID-" + peca.getId();
-            dto.setFotoUrl("https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=" + conteudoQR);
-        }
 
-        // --- ASSOCIAÇÃO DE MODELO E ÁREA ---
-        // Enviamos o ID do modelo para o Frontend (Estoque.jsx) fazer o "find" na lista de modelos/áreas
+        // ✅ FIX QR CODE: O frontend (Estoque.jsx) lê a imagem deste campo
+        String qrContent = peca.getCodigoControle() != null ? peca.getCodigoControle() : "PECA-" + peca.getId();
+        dto.setFotoUrl("https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=" + qrContent);
+
+        // ✅ FIX ÁREAS E MODELOS: Essencial para os filtros do Frontend funcionarem
         if (peca.getModeloEquipamento() != null) {
             dto.setModeloEquipamentoId(peca.getModeloEquipamento().getId());
             dto.setNomeModeloEquipamento(peca.getModeloEquipamento().getNome());
             dto.setFabricanteModeloEquipamento(peca.getModeloEquipamento().getFabricante());
+            
+            // ✅ MAPEAMENTO DA ÁREA: Mata o "N/A" na coluna Área do site
+            if (peca.getModeloEquipamento().getArea() != null) {
+                dto.setNomeArea(peca.getModeloEquipamento().getArea().getNome());
+            }
         }
         
         return dto;
