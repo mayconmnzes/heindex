@@ -1,0 +1,90 @@
+/* Sidebar.css */
+
+.sidebar {
+    width: 250px; /* Largura fixa da barra lateral */
+    background-color: #36404A; /* Fundo cinza escuro/quase preto */
+    color: #fff;
+    flex-shrink: 0; 
+    padding-bottom: 20px;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* CABEÇALHO E LOGO */
+.sidebar-header {
+    background-color: #2F3740; /* Fundo um pouco mais escuro para o cabeçalho */
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-bottom: 1px solid #485058;
+}
+
+.sidebar-logo {
+    width: 100px; /* Tamanho do logo */
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.sidebar-info p {
+    font-size: 0.75rem;
+    color: #A9B3BB;
+    margin: 2px 0;
+    text-align: left;
+    width: 100%; /* Garante que o texto fique alinhado */
+}
+
+/* CAMPO DE PESQUISA */
+.sidebar-search {
+    padding: 15px;
+    border-bottom: 1px solid #485058;
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #55606B;
+    border-radius: 4px;
+    background-color: #485058;
+    color: #fff;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+}
+
+/* MENU LINKS */
+.sidebar-menu {
+    padding-top: 10px;
+}
+
+.menu-item, .sidebar-menu a {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    color: #A9B3BB;
+    text-decoration: none;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.menu-item:hover, .sidebar-menu a:hover,
+.sidebar-menu a.active { /* Para destacar o link ativo se você implementar essa lógica */
+    background-color: #485058;
+    color: #fff;
+}
+
+/* Ícones (Você precisará garantir que os ícones Font Awesome ou similar estejam carregados) */
+.menu-item i {
+    width: 20px;
+    text-align: center;
+    margin-right: 10px;
+}
+
+/* Estilo para título de seção */
+.menu-section-title {
+    color: #7A858F;
+    font-size: 0.8rem;
+    font-weight: bold;
+    padding: 10px 15px 5px;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
