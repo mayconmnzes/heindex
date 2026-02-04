@@ -16,7 +16,7 @@ public class Checklist {
     @JoinColumn(name = "area_id")
     private Area area;
 
-    @OneToMany(mappedBy = "checklist", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "checklist", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<ItemChecklist> itens = new ArrayList<>();
 
     // MÉTODOS MANUAIS

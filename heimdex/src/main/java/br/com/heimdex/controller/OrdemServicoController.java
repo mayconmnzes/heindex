@@ -1,13 +1,12 @@
 package br.com.heimdex.controller;
 
+import br.com.heimdex.dto.*;
 import br.com.heimdex.model.OrdemServico;
+import br.com.heimdex.repository.OrdemServicoRepository;
 import br.com.heimdex.service.OrdemServicoService;
-import br.com.heimdex.dto.OrdemServicoRequestDTO;
-import br.com.heimdex.dto.OrdemServicoResponseDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -17,12 +16,8 @@ public class OrdemServicoController {
     @Autowired
     private OrdemServicoService service;
 
-    @PostMapping
-    public ResponseEntity<OrdemServicoResponseDTO> criar(@RequestBody OrdemServicoRequestDTO dto) {
-        // Criamos a OS e já retornamos o DTO convertido
-        OrdemServico os = service.criarOrdemServico(dto);
-        return ResponseEntity.ok(service.convertToResponseDTO(os));
-    }
+    @Autowired
+    private OrdemServicoRepository repository;
 
     @GetMapping
     public List<OrdemServicoResponseDTO> listarTodas() {
@@ -30,12 +25,29 @@ public class OrdemServicoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrdemServicoResponseDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(service.buscarPorId(id));
+    public OrdemServicoResponseDTO buscarPorId(@PathVariable Long id) {
+        return service.buscarPorId(id);
     }
 
-    // Este método é usado pelo EquipamentoController para listar o histórico
-    public OrdemServicoResponseDTO convertToResponseDTO(OrdemServico os) {
-        return service.convertToResponseDTO(os);
+    @PostMapping
+    public ResponseEntity<OrdemServicoResponseDTO> criar(@RequestBody OrdemServicoRequestDTO dto) {
+        OrdemServico novaOs = service.criarOrdemServico(dto);
+        return ResponseEntity.ok(service.convertToResponseDTO(novaOs));
+    }
+
+    // ✅ CORREÇÃO: Endpoint para iniciar a OS
+    @PostMapping("/{id}/iniciar")
+    public ResponseEntity<Void> iniciar(@PathVariable Long id) {
+        service.iniciarOrdemServico(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/checklist")
+    public ResponseEntity<ChecklistResponseDTO> getChecklistDaOS(@PathVariable Long id) {
+        OrdemServicoResponseDTO osDto = service.buscarPorId(id);
+        if (osDto != null && osDto.getChecklist() != null) {
+            return ResponseEntity.ok(osDto.getChecklist());
+        }
+        return ResponseEntity.notFound().build();
     }
 }

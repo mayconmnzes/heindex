@@ -4,7 +4,6 @@ import br.com.heimdex.model.enums.StatusOrdemServico;
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -35,7 +34,8 @@ public class OrdemServico {
     @JoinColumn(name = "lider_validador_id")
     private Usuario liderValidador;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // ✅ MUDANÇA OBRIGATÓRIA: FetchType.EAGER para carregar o checklist no banco de dados
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "checklist_id")
     private Checklist checklist;
 
@@ -60,40 +60,31 @@ public class OrdemServico {
     @Column(columnDefinition = "TEXT")
     private String observacoesLider;
 
-    // --- MÉTODOS MANUAIS DE ACESSO (BLINDAGEM DOCKER) ---
-
+    // MÉTODOS DE ACESSO MANUAIS
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
     public Equipamento getEquipamento() { return equipamento; }
     public void setEquipamento(Equipamento equipamento) { this.equipamento = equipamento; }
-
     public Set<Usuario> getTecnicosExecutores() { return tecnicosExecutores; }
     public void setTecnicosExecutores(Set<Usuario> tecnicosExecutores) { this.tecnicosExecutores = tecnicosExecutores; }
-
     public Checklist getChecklist() { return checklist; }
     public void setChecklist(Checklist checklist) { this.checklist = checklist; }
-
     public Set<ResultadoChecklistItem> getResultados() { return resultados; }
     public void setResultados(Set<ResultadoChecklistItem> resultados) { this.resultados = resultados; }
-
     public StatusOrdemServico getStatus() { return status; }
     public void setStatus(StatusOrdemServico status) { this.status = status; }
-
     public String getTipoManutencao() { return tipoManutencao; }
     public void setTipoManutencao(String tipoManutencao) { this.tipoManutencao = tipoManutencao; }
-
     public LocalDateTime getDataAgendamento() { return dataAgendamento; }
     public void setDataAgendamento(LocalDateTime dataAgendamento) { this.dataAgendamento = dataAgendamento; }
-
     public LocalDateTime getDataInicioExecucao() { return dataInicioExecucao; }
     public void setDataInicioExecucao(LocalDateTime dataInicioExecucao) { this.dataInicioExecucao = dataInicioExecucao; }
-
     public LocalDateTime getDataFimExecucao() { return dataFimExecucao; }
     public void setDataFimExecucao(LocalDateTime dataFimExecucao) { this.dataFimExecucao = dataFimExecucao; }
-
-    // Método para suportar chamadas .builder() caso o service use
-    public static OrdemServico builder() { return new OrdemServico(); }
+    public String getObservacoesTecnico() { return observacoesTecnico; }
+    public void setObservacoesTecnico(String observacoesTecnico) { this.observacoesTecnico = observacoesTecnico; }
+    public String getObservacoesLider() { return observacoesLider; }
+    public void setObservacoesLider(String observacoesLider) { this.observacoesLider = observacoesLider; }
 
     public void addResultado(ResultadoChecklistItem resultado) {
         this.resultados.add(resultado);

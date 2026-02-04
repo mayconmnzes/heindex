@@ -56,6 +56,8 @@ public class EquipamentoController {
                     equipamentoExistente.setNome(dto.getNome());
                     String novoCodigo = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? null : dto.getCodigo();
                     equipamentoExistente.setCodigo(novoCodigo);
+                    
+                    // ✅ SINCRONIZADO COM O MODEL EQUIPAMENTO.JAVA
                     equipamentoExistente.setCriticidade(dto.getCriticidade());
                     equipamentoExistente.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
                     equipamentoExistente.setDataUltimaPreventiva(dto.getDataUltimaPreventiva());
@@ -68,11 +70,12 @@ public class EquipamentoController {
                     equipamentoExistente.setLinha(linha);
                     equipamentoExistente.setModelo(modelo);
 
+                    // ✅ CORREÇÃO: Alterado de setChecklistPadrao para setChecklist (para bater com seu Model)
                     if (dto.getChecklistId() != null) {
                         Checklist checklist = checklistRepository.findById(dto.getChecklistId()).orElse(null);
-                        equipamentoExistente.setChecklistPadrao(checklist);
+                        equipamentoExistente.setChecklist(checklist);
                     } else {
-                        equipamentoExistente.setChecklistPadrao(null);
+                        equipamentoExistente.setChecklist(null);
                     }
 
                     Equipamento updatedEquipamento = equipamentoRepository.save(equipamentoExistente);
@@ -94,21 +97,35 @@ public class EquipamentoController {
     }
 
     private Equipamento convertToEntity(EquipamentoRequestDTO dto) {
-        Equipamento equipamento = new Equipamento();
-        equipamento.setNome(dto.getNome());
-        String codigoTratado = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? null : dto.getCodigo();
-        equipamento.setCodigo(codigoTratado);
-        equipamento.setCriticidade(dto.getCriticidade());
-        equipamento.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
-        equipamento.setDataUltimaPreventiva(dto.getDataUltimaPreventiva());
+    Equipamento equipamento = new Equipamento();
+    equipamento.setNome(dto.getNome());
+    
+    // ✅ Garante que se o código vier vazio, ele não quebre o banco
+    String codigoTratado = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? "TEMP-" + System.currentTimeMillis() : dto.getCodigo();
+    equipamento.setCodigo(codigoTratado);
+    
+    equipamento.setCriticidade(dto.getCriticidade());
+    equipamento.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
+    equipamento.setDataUltimaPreventiva(dto.getDataUltimaPreventiva());
 
+    if (dto.getLinhaId() != null) {
         LinhaDeProducao linha = linhaDeProducaoRepository.findById(dto.getLinhaId()).orElse(null);
-        ModeloEquipamento modelo = modeloRepository.findById(dto.getModeloId()).orElse(null);
         equipamento.setLinha(linha);
-        equipamento.setModelo(modelo);
-
-        return equipamento;
     }
+    
+    if (dto.getModeloId() != null) {
+        ModeloEquipamento modelo = modeloRepository.findById(dto.getModeloId()).orElse(null);
+        equipamento.setModelo(modelo);
+    }
+
+    // ✅ Crucial: Vincula o checklist padrão no cadastro inicial
+    if (dto.getChecklistId() != null) {
+        Checklist checklist = checklistRepository.findById(dto.getChecklistId()).orElse(null);
+        equipamento.setChecklist(checklist);
+    }
+
+    return equipamento;
+}
 
     public EquipamentoResponseDTO convertToResponseDTO(Equipamento equipamento) {
         if (equipamento == null) return null;
@@ -117,8 +134,6 @@ public class EquipamentoController {
         dto.setNome(equipamento.getNome());
         dto.setCodigo(equipamento.getCodigo());
         dto.setCriticidade(equipamento.getCriticidade());
-        
-        // ✅ MAPEAMENTO DAS DATAS: Essencial para o Planejamento.jsx
         dto.setDataUltimaPreventiva(equipamento.getDataUltimaPreventiva());
         dto.setFrequenciaPreventiva(equipamento.getFrequenciaPreventiva());
 
@@ -135,24 +150,20 @@ public class EquipamentoController {
             }
         }
 
-        if (equipamento.getChecklistPadrao() != null) {
-            dto.setChecklistId(equipamento.getChecklistPadrao().getId());
-            dto.setChecklistNome(equipamento.getChecklistPadrao().getNome());
+        // ✅ CORREÇÃO: Alterado de getChecklistPadrao para getChecklist
+        if (equipamento.getChecklist() != null) {
+            dto.setChecklistId(equipamento.getChecklist().getId());
+            dto.setChecklistNome(equipamento.getChecklist().getNome());
         }
 
-        // 🔥 LÓGICA DO STATUS: Alimenta o gráfico e cores dos cards no Frontend
         dto.setStatusPreventiva(calcularStatus(equipamento));
-
         return dto;
     }
 
     private String calcularStatus(Equipamento e) {
-        // 1. Verifica se existe alguma OS de PREVENTIVA vinculada a este equipamento
-        // Se houver qualquer registro no histórico, consideramos "AGENDADA" para simplificar o gráfico agora
         List<OrdemServico> ordens = ordemServicoRepository.findByEquipamentoIdOrderByDataAgendamentoDesc(e.getId());
         
         if (!ordens.isEmpty()) {
-            // Se a última OS ainda não tiver data de fim, ela está "em aberto"
             if (ordens.get(0).getDataFimExecucao() == null) {
                 return "AGENDADA";
             }
@@ -162,7 +173,6 @@ public class EquipamentoController {
             return "NAO_CONFIGURADA";
         }
 
-        // 2. Calcula a data de vencimento
         LocalDate vencimento = e.getDataUltimaPreventiva();
         switch (e.getFrequenciaPreventiva()) {
             case QUINZENAL -> vencimento = vencimento.plusDays(15);

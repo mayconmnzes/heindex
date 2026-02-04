@@ -4,37 +4,38 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.springframework.web.servlet.resource.PathResourceResolver;
+import java.io.File;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    /**
-     * Configuração para servir arquivos da pasta local.
-     * Mapeia a URL /uploads/** para a pasta física ./uploads na raiz do projeto.
-     */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Pega o caminho da pasta uploads na raiz do projeto
-        Path uploadDir = Paths.get("./uploads");
-        String uploadPath = uploadDir.toFile().getAbsolutePath();
+        String rootPath = System.getProperty("user.dir");
+        String os = System.getProperty("os.name").toLowerCase();
         
-        // Determina o prefixo correto: 'file:///' para Windows ou 'file:' para Linux/Docker
-        String protocol = System.getProperty("os.name").toLowerCase().contains("win") ? "file:///" : "file:";
+        // Protocolo dinâmico para Windows vs Linux
+        String protocol = os.contains("win") ? "file:///" : "file:";
+        
+        // Caminhos absolutos
+        String uploadLocation = protocol + rootPath + File.separator + "uploads" + File.separator;
+        String legacyLocation = protocol + rootPath + File.separator + "uploaded-photos" + File.separator;
 
+        // ✅ Configuração para /uploads com correção de bloqueio ORB
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(protocol + uploadPath + "/");
-                
-        // Mantém sua pasta antiga caso o servidor online a utilize
+                .addResourceLocations(uploadLocation)
+                .setCachePeriod(0)
+                .resourceChain(true) // Ajuda o navegador a validar o recurso
+                .addResolver(new PathResourceResolver());
+
+        // ✅ Suporte para pasta antiga
         registry.addResourceHandler("/uploaded-photos/**")
-                .addResourceLocations("file:./uploaded-photos/");
+                .addResourceLocations(legacyLocation)
+                .resourceChain(true)
+                .addResolver(new PathResourceResolver());
     }
 
-    /**
-     * Configuração global de CORS.
-     * Essencial para que o sistema funcione quando você voltar para o servidor online.
-     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
@@ -42,7 +43,7 @@ public class WebConfig implements WebMvcConfigurer {
                     "http://localhost:[*]",
                     "https://*.onrender.com",
                     "https://*.vercel.app",
-                    "*" // Permite origens variadas para facilitar testes
+                    "*" 
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")

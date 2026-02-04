@@ -655,12 +655,10 @@ function EquipamentoModule({ equipamentos, fetchEquipamentos, areas, linhas, che
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        // ✅ CORREÇÃO 1: Garante que a URL não seja undefined
         const url = EQUIPAMENTOS_API_URL || `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
 
         if (!form.linhaId || !form.modeloId) return alert("Selecione Área, Modelo e Linha.");
 
-        // ✅ CORREÇÃO 2: Trata String Vazia para o Enum (null em vez de "")
         const frequenciaTratada = form.frequenciaPreventiva === "" ? null : form.frequenciaPreventiva;
         const dataTratada = form.dataUltimaPreventiva === "" ? null : form.dataUltimaPreventiva;
 
@@ -747,7 +745,6 @@ function EquipamentoModule({ equipamentos, fetchEquipamentos, areas, linhas, che
                         </select>
                         <label>Tag:</label><input name="nome" value={form.nome} onChange={handleChange} required />
                         
-                        {/* ✅ ASSOCIAÇÃO DE CHECKLIST PRESERVADA */}
                         <label>Checklist Padrão:</label>
                         <select name="checklistId" value={form.checklistId} onChange={handleChange}>
                             <option value="">Nenhum</option>
@@ -763,6 +760,15 @@ function EquipamentoModule({ equipamentos, fetchEquipamentos, areas, linhas, che
                             <option value="SEMESTRAL">Semestral</option>
                             <option value="ANUAL">Anual</option>
                         </select>
+
+                        {/* ✅ CAMPO RESTAURADO: Data da Última Preventiva */}
+                        <label>Última Preventiva:</label>
+                        <input 
+                            type="date" 
+                            name="dataUltimaPreventiva" 
+                            value={form.dataUltimaPreventiva} 
+                            onChange={handleChange} 
+                        />
                     </div>
                     <button type="submit" style={{marginTop: '10px'}}>Salvar</button>
                     {editingId && <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d', color: 'white', marginLeft: '10px' }}>Cancelar</button>}
@@ -806,8 +812,19 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
     const [editingId, setEditingId] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     
+    // ✅ 1. CORREÇÃO: Topo da função (Estados)
+    const [modalImage, setModalImage] = useState(null);
     const [filterListAreaId, setFilterListAreaId] = useState('');
     const [filterListModeloId, setFilterListModeloId] = useState('');
+
+    // ✅ 3. CORREÇÃO: Evento de teclado (ESC para fechar)
+    useEffect(() => {
+        const handleEsc = (e) => { 
+            if (e.key === 'Escape') setModalImage(null); 
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
 
     const handleAssociacaoChange = (index, field, value) => {
         const novasAssociacoes = [...form.associacoes];
@@ -992,30 +1009,22 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
                                     <td>
                                         {peca.fotoUrl ? (
                                             <img 
-                                                /* ✅ VITE_API_BASE_URL garante que localmente use porta 10000 e no Render use a URL deles */
                                                 src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${peca.fotoUrl}`} 
                                                 alt="peca" 
                                                 width="50" 
-                                                style={{ borderRadius: '4px' }} 
-                                                onError={(e) => { 
-                                                    // Se falhar, tenta sem o prefixo /uploads/ (caso o banco já tenha o caminho completo)
-                                                    if (!e.target.dataset.tried) {
-                                                        e.target.dataset.tried = "true";
-                                                        e.target.src = peca.fotoUrl; 
-                                                    } else {
-                                                        e.target.src = 'https://via.placeholder.com/50?text=Erro';
-                                                    }
-                                                }}
+                                                style={{ borderRadius: '4px', cursor: 'zoom-in' }} 
+                                                onClick={() => setModalImage(`${import.meta.env.VITE_API_BASE_URL}/uploads/${peca.fotoUrl}`)}
+                                                onError={(e) => { e.target.style.display = 'none'; }}
                                             />
                                         ) : <span style={{ fontSize: '10px' }}>Sem foto</span>}
                                     </td>
                                     <td>
-                                        {/* ✅ Geramos o QR Code direto no Front usando os dados da peça para garantir que apareça */}
                                         <img 
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoRequisicao || 'ID-'+peca.id}`} 
                                             width="50" 
                                             alt="qr" 
-                                            style={{ border: '1px solid #eee' }}
+                                            style={{ cursor: 'zoom-in', border: '1px solid #eee' }}
+                                            onClick={() => setModalImage(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${peca.codigoRequisicao || 'ID-'+peca.id}`)}
                                         />
                                     </td>
                                     <td><strong>{peca.nome}</strong><br/><small>{peca.codigoRequisicao}</small></td>
@@ -1034,6 +1043,29 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
                     </table>
                 </div>
             </div>
+
+            {/* ✅ 2. CORREÇÃO: Final do return (Modal de Visualização) */}
+            {modalImage && (
+                <div 
+                    style={{
+                        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                        backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center',
+                        alignItems: 'center', zIndex: 10000, cursor: 'pointer'
+                    }}
+                    onClick={() => setModalImage(null)}
+                >
+                    <div style={{ position: 'relative', background: '#fff', padding: '15px', borderRadius: '12px' }}>
+                        <img 
+                            src={modalImage} 
+                            style={{ maxWidth: '90vw', maxHeight: '85vh', borderRadius: '8px', display: 'block' }} 
+                            alt="Ampliada" 
+                        />
+                        <div style={{ textAlign: 'center', marginTop: '10px', color: '#333', fontWeight: 'bold' }}>
+                            ESC ou Clique para fechar
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

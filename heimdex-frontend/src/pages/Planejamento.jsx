@@ -118,12 +118,11 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
 
 // MODAL ATUALIZADO PARA MÚLTIPLOS TÉCNICOS
 function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
-    // Comentado para referência: const [tecnicoId, setTecnicoId] = useState('');
-    const [tecnicosIds, setTecnicosIds] = useState([]); // Novo: Array para múltiplos técnicos
+    const [tecnicosIds, setTecnicosIds] = useState([]); 
     const [dataAgendamento, setDataAgendamento] = useState('');
     
+    // ✅ FUNÇÃO QUE ESTAVA FALTANDO:
     const handleTecnicoChange = (e) => {
-        // Captura múltiplos valores selecionados
         const values = Array.from(e.target.selectedOptions, option => Number(option.value));
         setTecnicosIds(values);
     };
@@ -131,10 +130,14 @@ function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (tecnicosIds.length === 0 || !dataAgendamento) return alert("Técnico(s) e Data são obrigatórios.");
+
+        // Tenta pegar o ID do checklist do equipamento
+        const idChecklist = equipamento.checklistId || equipamento.checklist_id || equipamento.checklist?.id;
+
         onSave({
             equipamentoId: equipamento.id,
-            tecnicosIds: tecnicosIds, // Enviando a lista de IDs para o novo Backend
-            checklistId: equipamento.checklistId ? Number(equipamento.checklistId) : null,
+            tecnicosIds: tecnicosIds, 
+            checklistId: idChecklist ? Number(idChecklist) : null,
             dataAgendamento,
             tipoManutencao: 'PREVENTIVA'
         });
@@ -145,12 +148,12 @@ function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
             <div className="timeline-modal-content" style={{ width: '500px' }}>
                 <h3>Planejar OS para: {equipamento.nome}</h3>
                 <form onSubmit={handleSubmit}>
-                    <label>Técnicos Responsáveis (Segure Ctrl para selecionar vários):</label>
+                    <label>Técnicos (Segure Ctrl para selecionar vários):</label>
                     <select 
                         multiple 
                         value={tecnicosIds} 
                         onChange={handleTecnicoChange} 
-                        style={{ height: '120px', marginBottom: '10px' }} 
+                        style={{ height: '120px', marginBottom: '10px', width: '100%' }} 
                         required
                     >
                         {tecnicos.map(tec => (
@@ -161,14 +164,24 @@ function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
                     </select>
 
                     <label>Checklist:</label>
-                    <input value={equipamento.checklistNome || 'Nenhum checklist padrão'} disabled />
+                    <input value={equipamento.checklistNome || (equipamento.checklist?.nome) || 'Nenhum checklist padrão'} disabled style={{width: '100%', marginBottom: '10px'}} />
                     
                     <label>Data de Agendamento:</label>
-                    <input type="datetime-local" value={dataAgendamento} onChange={(e) => setDataAgendamento(e.target.value)} required />
+                    <input 
+                        type="datetime-local" 
+                        value={dataAgendamento} 
+                        onChange={(e) => setDataAgendamento(e.target.value)} 
+                        required 
+                        style={{width: '100%', marginBottom: '10px'}}
+                    />
                     
                     <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        <button type="submit">Agendar Manutenção</button>
-                        <button type="button" onClick={onClose} style={{ backgroundColor: '#6c757d' }}>Cancelar</button>
+                        <button type="submit" style={{ backgroundColor: '#28a745', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                            Confirmar Agendamento
+                        </button>
+                        <button type="button" onClick={onClose} style={{ backgroundColor: '#6c757d', color: 'white', padding: '10px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                            Cancelar
+                        </button>
                     </div>
                 </form>
             </div>

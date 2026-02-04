@@ -8,8 +8,17 @@ import java.util.List;
 @Repository
 public interface MovimentacaoEstoqueRepository extends JpaRepository<MovimentacaoEstoque, Long> {
 
-    // ✅ Este método mata o erro no MovimentacaoEstoqueController
     List<MovimentacaoEstoque> findByObservacaoContainingOrderByDataMovimentacaoDesc(String observacao);
     
+    // ✅ Adicione este método exato para o histórico funcionar:
+    List<MovimentacaoEstoque> findByPecaIdOrderByDataMovimentacaoDesc(Long pecaId);
+    
+    // Pode manter o antigo se outras telas usarem:
     List<MovimentacaoEstoque> findByPecaIdOrderByDataHoraDesc(Long pecaId);
+
+    List<MovimentacaoEstoque> findAllByOrderByDataMovimentacaoDesc();
+
+    List<MovimentacaoEstoque> findByDataMovimentacaoBetweenOrderByDataMovimentacaoDesc(
+    java.time.LocalDateTime inicio, 
+    java.time.LocalDateTime fim);
 }

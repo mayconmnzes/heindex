@@ -1,4 +1,4 @@
-/* Código Completo - Adiciona apenas a nova regra no final */
+/* Código Completo - Adicionado efeito de piscar ao final */
 
 /* Estilo Global */
 body {
@@ -425,4 +425,20 @@ tbody tr:hover {
 .status-sugestao {
   background-color: #6f42c1; /* Cor Lilás/Roxo do Bootstrap */
   color: white;
+}
+
+/* ===============================================
+   ✅ NOVO: ALERTA DE ESTOQUE CRÍTICO (BLINK)
+   =============================================== */
+
+@keyframes blinker {
+  50% { opacity: 0.3; }
+}
+
+.estoque-critico {
+  animation: blinker 1s linear infinite;
+  background-color: #dc3545 !important; /* Vermelho padrão do seu CSS */
+  color: white !important;
+  font-weight: bold;
+  text-align: center;
 }

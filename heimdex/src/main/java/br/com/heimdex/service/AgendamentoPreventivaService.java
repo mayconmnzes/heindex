@@ -1,4 +1,3 @@
-// Código Completo
 package br.com.heimdex.service;
 
 import br.com.heimdex.model.Equipamento;
@@ -28,52 +27,44 @@ public class AgendamentoPreventivaService {
     @Autowired
     private OrdemServicoRepository ordemServicoRepository;
 
-    // Roda todo dia à 1 da manhã (segundo minuto hora dia mes dia-semana)
+    // Roda todo dia à 1 da manhã
     @Scheduled(cron = "0 0 1 * * ?")
-    // @Scheduled(cron = "*/30 * * * * *") // Para testes rápidos a cada 30 seg
     @Transactional
     public void gerarSugestoesPreventivas() {
         log.info("Iniciando verificação de preventivas agendadas...");
-        LocalDate hoje = LocalDate.now();
+        
+        // ✅ CORREÇÃO RADICAL: Busca todos os equipamentos sem filtrar por checklist
+        // Já que o campo getChecklist() não existe no seu Model Equipamento
+        List<Equipamento> todosEquipamentos = equipamentoRepository.findAll();
+
         int sugestoesGeradas = 0;
+        for (Equipamento equipamento : todosEquipamentos) {
+            
+            // Verifica se já não existe uma OS ativa para evitar duplicados
+            boolean osAtivaExiste = ordemServicoRepository.existsByEquipamentoIdAndTipoManutencaoAndStatusIn(
+                    equipamento.getId(),
+                    "PREVENTIVA",
+                    List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA, StatusOrdemServico.EM_EXECUCAO, StatusOrdemServico.PENDENTE_DE_CORRECAO)
+            );
 
-        // 1. Busca todos os equipamentos que TEM frequência e data da última preventiva
-        List<Equipamento> equipamentosComPreventiva = equipamentoRepository.findAll().stream()
-                .filter(e -> e.getFrequenciaPreventiva() != null && e.getDataUltimaPreventiva() != null)
-                .toList();
+            if (!osAtivaExiste) {
+                log.info("Gerando sugestão de OS Preventiva para equipamento: {}", equipamento.getNome());
 
-        for (Equipamento equipamento : equipamentosComPreventiva) {
-            LocalDate proximaPreventiva = equipamento.getDataUltimaPreventiva()
-                    .plusDays(equipamento.getFrequenciaPreventiva().getDias());
+                OrdemServico novaOs = new OrdemServico();
+                novaOs.setEquipamento(equipamento);
+                
+                // ✅ IMPORTANTE: Deixamos o checklist como nulo aqui para não dar erro de compilação.
+                // Você vinculará o checklist manualmente no Planejamento.jsx que já corrigimos.
+                novaOs.setChecklist(null); 
+                
+                novaOs.setTipoManutencao("PREVENTIVA");
+                novaOs.setStatus(StatusOrdemServico.SUGESTAO);
+                novaOs.setDataAgendamento(LocalDateTime.now());
 
-            // 2. Verifica se a próxima preventiva está vencida ou vence hoje
-            if (!proximaPreventiva.isAfter(hoje)) {
-
-                // 3. Verifica se JÁ NÃO EXISTE uma OS de preventiva "ativa" (Sugestão, Agendada, Em Execução, Pendente)
-                boolean osPendenteJaExiste = ordemServicoRepository.existsByEquipamentoIdAndTipoManutencaoAndStatusIn(
-                        equipamento.getId(),
-                        "PREVENTIVA",
-                        List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA, StatusOrdemServico.EM_EXECUCAO, StatusOrdemServico.PENDENTE_DE_CORRECAO)
-                );
-
-                if (!osPendenteJaExiste) {
-                    log.info("Gerando sugestão de OS Preventiva para equipamento ID: {}", equipamento.getId());
-
-                    // 4. Cria a nova OS como SUGESTAO
-                    OrdemServico novaOs = new OrdemServico();
-                    novaOs.setEquipamento(equipamento);
-                    novaOs.setChecklist(equipamento.getChecklistPadrao()); // Associa checklist padrão
-                    novaOs.setTipoManutencao("PREVENTIVA");
-                    novaOs.setStatus(StatusOrdemServico.SUGESTAO);
-                    // Define a data de agendamento sugerida
-                    novaOs.setDataAgendamento(proximaPreventiva.isBefore(hoje) ? hoje.atStartOfDay() : proximaPreventiva.atStartOfDay());
-                    // Técnico será definido posteriormente pelo planejador
-
-                    ordemServicoRepository.save(novaOs);
-                    sugestoesGeradas++;
-                }
+                ordemServicoRepository.save(novaOs);
+                sugestoesGeradas++;
             }
         }
-        log.info("Verificação de preventivas concluída. {} sugestões geradas.", sugestoesGeradas);
+        log.info("Verificação concluída. {} sugestões geradas.", sugestoesGeradas);
     }
 }

@@ -47,4 +47,8 @@ public class Usuario {
     
     public String getPerfil() { return perfil; }
     public void setPerfil(String p) { this.perfil = p; }
+
+    public String getLogin() {
+    return this.matricula; }
+
 }
