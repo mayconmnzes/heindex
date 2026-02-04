@@ -1,13 +1,16 @@
 package br.com.heimdex.controller;
 
 import br.com.heimdex.dto.*;
+import br.com.heimdex.model.FotoOS;
 import br.com.heimdex.model.OrdemServico;
+import br.com.heimdex.repository.FotoOSRepository;
 import br.com.heimdex.repository.OrdemServicoRepository;
 import br.com.heimdex.service.OrdemServicoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ordens-servico")
@@ -19,8 +22,18 @@ public class OrdemServicoController {
     @Autowired
     private OrdemServicoRepository repository;
 
+    @Autowired
+    private FotoOSRepository fotoOSRepository;
+
+    // Agora aceita filtro opcional equipamentoId para histórico
     @GetMapping
-    public List<OrdemServicoResponseDTO> listarTodas() {
+    public List<OrdemServicoResponseDTO> listarTodas(@RequestParam(required = false) Long equipamentoId) {
+        if (equipamentoId != null) {
+            // busca por equipamento específico (histórico)
+            return repository.findByEquipamentoIdOrderByDataAgendamentoDesc(equipamentoId).stream()
+                    .map(service::convertToResponseDTO)
+                    .collect(Collectors.toList());
+        }
         return service.listarTodas();
     }
 
@@ -35,11 +48,64 @@ public class OrdemServicoController {
         return ResponseEntity.ok(service.convertToResponseDTO(novaOs));
     }
 
-    // ✅ CORREÇÃO: Endpoint para iniciar a OS
     @PostMapping("/{id}/iniciar")
     public ResponseEntity<Void> iniciar(@PathVariable Long id) {
         service.iniciarOrdemServico(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/fotos")
+    public ResponseEntity<String> anexarFotoNaOs(@PathVariable Long id, @RequestBody String fotoUrlBody) {
+        OrdemServico os = repository.findById(id).orElse(null);
+        if (os == null) return ResponseEntity.notFound().build();
+
+        String fotoUrl = fotoUrlBody;
+        if (fotoUrl != null && fotoUrl.startsWith("\"") && fotoUrl.endsWith("\"") && fotoUrl.length() >= 2) {
+            fotoUrl = fotoUrl.substring(1, fotoUrl.length() - 1);
+        }
+
+        FotoOS foto = new FotoOS();
+        foto.setOrdemServico(os);
+        foto.setUrl(fotoUrl);
+        fotoOSRepository.save(foto);
+
+        return ResponseEntity.ok(fotoUrl);
+    }
+
+    @PostMapping("/{id}/finalizar")
+    public ResponseEntity<String> finalizar(@PathVariable Long id, @RequestBody FinalizarOsRequestDTO dto) {
+        try {
+            service.finalizarOrdemServico(id, dto);
+            return ResponseEntity.ok("Finalizada");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro ao finalizar");
+        }
+    }
+
+    @PostMapping("/{id}/validar")
+    public ResponseEntity<String> validar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
+        try {
+            service.validarOrdemServico(id, dto.getLiderId(), dto.getObservacoesLider());
+            return ResponseEntity.ok("OS validada");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro ao validar OS");
+        }
+    }
+
+    @PostMapping("/{id}/reprovar")
+    public ResponseEntity<String> reprovar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
+        try {
+            service.reprovarOrdemServico(id, dto.getLiderId(), dto.getObservacoesLider());
+            return ResponseEntity.ok("OS reprovada");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erro ao reprovar OS");
+        }
     }
 
     @GetMapping("/{id}/checklist")
