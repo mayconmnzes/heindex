@@ -1,4 +1,3 @@
-// Código Completo
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import MultiSelect from 'react-select'; // Ainda necessário para ChecklistModule
@@ -25,10 +24,18 @@ const formatPerfilName = (perfil) => {
 };
 
 // ===============================================
-// 1. MÓDULO DE USUÁRIOS (Sem alterações)
+// 1. MÓDULO DE USUÁRIOS (Corrigido com campo E-mail)
 // ===============================================
-function UsuarioModule({ users, fetchUsers }) {
-    const initialState = { nomeCompleto: '', matricula: '', senha: '', perfil: 'TECNICO' };
+function UsuarioModule({ users, fetchUsers, USUARIOS_API_URL, PERFIS_DISPONIVEIS, formatPerfilName }) {
+    // Estado inicial agora inclui o campo 'email' exigido pela Model Java
+    const initialState = { 
+        nomeCompleto: '', 
+        matricula: '', 
+        email: '', 
+        senha: '', 
+        perfil: 'TECNICO' 
+    };
+    
     const [form, setForm] = useState(initialState);
     const [editingId, setEditingId] = useState(null);
 
@@ -37,11 +44,15 @@ function UsuarioModule({ users, fetchUsers }) {
         setForm({ ...form, [name]: value });
     };
 
-    const handleCancelEdit = () => { setForm(initialState); setEditingId(null); };
+    const handleCancelEdit = () => { 
+        setForm(initialState); 
+        setEditingId(null); 
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validação básica de senha para novos cadastros
         if (!editingId && (!form.senha || form.senha.length < 4)) {
             alert("Para novos usuários, a senha deve ter pelo menos 4 caracteres.");
             return;
@@ -49,21 +60,26 @@ function UsuarioModule({ users, fetchUsers }) {
 
         try {
             if (editingId) {
+                // Na edição, se a senha estiver vazia, enviamos null para não sobrescrever a senha atual
                 const updateData = form.senha ? form : { ...form, senha: null };
                 await axios.put(`${USUARIOS_API_URL}/${editingId}`, updateData);
             } else {
+                // Envio para criação: agora o objeto 'form' contém o campo 'email'
                 await axios.post(USUARIOS_API_URL, form);
             }
             handleCancelEdit();
             fetchUsers();
+            alert("Usuário salvo com sucesso!");
         } catch (error) {
             console.error("Erro ao salvar usuário:", error.response?.data || error.message);
-            alert(`Erro ao salvar usuário: ${error.response?.data || 'Matrícula já existente ou erro de servidor.'}`);
+            // Mensagem detalhada baseada no erro de restrição do banco
+            alert(`Erro ao salvar usuário: ${error.response?.data?.message || 'Verifique se o e-mail ou matrícula já existem no sistema.'}`);
         }
     };
 
     const handleEdit = (user) => {
         setEditingId(user.id);
+        // Preenche o formulário com os dados do usuário, limpando o campo de senha por segurança
         setForm({ ...user, senha: '' });
     };
 
@@ -84,46 +100,104 @@ function UsuarioModule({ users, fetchUsers }) {
             <div className="form-section">
                 <h2>{editingId ? 'Editar Usuário' : 'Novo Usuário'}</h2>
                 <form onSubmit={handleSubmit}>
-                    <label>Nome Completo:</label><input name="nomeCompleto" value={form.nomeCompleto} onChange={handleChange} placeholder="Nome Completo" required />
-                    <label>Usuário (Login):</label><input name="matricula" value={form.matricula} onChange={handleChange} placeholder="Usuário" required />
-                    <label>Senha:</label>
-                    <input
-                        name="senha"
-                        type="password"
-                        value={form.senha}
-                        onChange={handleChange}
-                        placeholder={editingId ? 'Deixe em branco para não alterar' : 'Senha Obrigatória'}
-                        required={!editingId}
-                    />
-                    <label>Perfil de Acesso:</label>
-                    <select name="perfil" value={form.perfil} onChange={handleChange} required>
-                        {PERFIS_DISPONIVEIS.map(perfil => (
-                            <option key={perfil} value={perfil}>{formatPerfilName(perfil)}</option>
-                        ))}
-                    </select>
+                    <div className="form-grid">
+                        <label>Nome Completo:</label>
+                        <input 
+                            name="nomeCompleto" 
+                            value={form.nomeCompleto} 
+                            onChange={handleChange} 
+                            placeholder="Ex: João Silva" 
+                            required 
+                        />
+                        
+                        <label>E-mail Corporativo:</label>
+                        {/* Campo crucial adicionado para satisfazer a constraint do banco de dados */}
+                        <input 
+                            name="email" 
+                            type="email" 
+                            value={form.email} 
+                            onChange={handleChange} 
+                            placeholder="usuario@heimdex.com.br" 
+                            required 
+                        />
+                        
+                        <label>Usuário (Login/Matrícula):</label>
+                        <input 
+                            name="matricula" 
+                            value={form.matricula} 
+                            onChange={handleChange} 
+                            placeholder="Matrícula" 
+                            required 
+                        />
+                        
+                        <label>Senha:</label>
+                        <input
+                            name="senha"
+                            type="password"
+                            value={form.senha}
+                            onChange={handleChange}
+                            placeholder={editingId ? 'Deixe em branco para manter a atual' : 'Senha Obrigatória'}
+                            required={!editingId}
+                        />
+                        
+                        <label>Perfil de Acesso:</label>
+                        <select name="perfil" value={form.perfil} onChange={handleChange} required>
+                            {PERFIS_DISPONIVEIS.map(perfil => (
+                                <option key={perfil} value={perfil}>
+                                    {formatPerfilName(perfil)}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-                    <button type="submit">{editingId ? 'Salvar Alterações' : 'Adicionar Usuário'}</button>
-                    {editingId && <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d' }}>Cancelar Edição</button>}
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                        <button type="submit" style={{ backgroundColor: '#28a745', color: 'white' }}>
+                            {editingId ? 'Salvar Alterações' : 'Adicionar Usuário'}
+                        </button>
+                        {editingId && (
+                            <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d', color: 'white' }}>
+                                Cancelar Edição
+                            </button>
+                        )}
+                    </div>
                 </form>
             </div>
-            <div className="list-section">
+
+            <div className="list-section" style={{ marginTop: '30px' }}>
                 <h2>Usuários Cadastrados</h2>
                 <div className="table-container">
                     <table>
-                        <thead><tr><th>ID</th><th>Nome</th><th>Login</th><th>Perfil</th><th>Ações</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Login</th>
+                                <th>E-mail</th>
+                                <th>Perfil</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             {users.map(user => (
                                 <tr key={user.id}>
                                     <td>{user.id}</td>
-                                    <td>{user.nomeCompleto}</td>
+                                    <td><strong>{user.nomeCompleto}</strong></td>
                                     <td>{user.matricula}</td>
+                                    <td>{user.email}</td>
                                     <td>{formatPerfilName(user.perfil)}</td>
                                     <td>
-                                        <button onClick={() => handleEdit(user)}>Editar</button>
-                                        <button onClick={() => handleDelete(user.id)} style={{ backgroundColor: '#dc3545' }}>Deletar</button>
+                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                            <button onClick={() => handleEdit(user)}>Editar</button>
+                                            <button onClick={() => handleDelete(user.id)} style={{ backgroundColor: '#dc3545', color: 'white' }}>Deletar</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
+                            {users.length === 0 && (
+                                <tr>
+                                    <td colSpan="6" style={{ textAlign: 'center' }}>Nenhum usuário cadastrado.</td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -207,16 +281,26 @@ function LinhaModule({ linhas, fetchLinhas, areas }) {
         e.preventDefault();
         if (!form.nome || !form.areaId) return alert("Nome e Área são obrigatórios.");
 
+        // ✅ CORREÇÃO: Transformando areaId no objeto 'area' que o Java espera
+        const linhaData = {
+            nome: form.nome,
+            area: {
+                id: Number(form.areaId) // O Java precisa do objeto Area para mapear
+            }
+        };
+
         try {
             if (editingId) {
-                await axios.put(`${LINHAS_API_URL}/${editingId}`, form);
+                await axios.put(`${LINHAS_API_URL}/${editingId}`, linhaData);
             } else {
-                await axios.post(LINHAS_API_URL, form);
+                await axios.post(LINHAS_API_URL, linhaData);
             }
             handleCancelEdit();
             fetchLinhas();
+            alert("Linha salva com sucesso!");
         } catch (error) {
-            alert("Erro ao salvar a linha de produção.");
+            console.error("Erro ao salvar linha:", error.response?.data || error.message);
+            alert("Erro ao salvar a linha de produção. Verifique o console.");
         }
     };
 
@@ -316,14 +400,24 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
         e.preventDefault();
         if (!form.nome || !form.areaId || !form.fabricante) return alert("Nome, Fabricante e Área são obrigatórios.");
 
+        // ✅ CORREÇÃO: Enviando o objeto que o Java espera
+        const modeloData = {
+            nome: form.nome,
+            fabricante: form.fabricante,
+            area: {
+                id: Number(form.areaId) // O segredo está aqui
+            }
+        };
+
         try {
             if (editingId) {
-                await axios.put(`${MODELOS_API_URL}/${editingId}`, form);
+                await axios.put(`${MODELOS_API_URL}/${editingId}`, modeloData);
             } else {
-                await axios.post(MODELOS_API_URL, form);
+                await axios.post(MODELOS_API_URL, modeloData);
             }
             handleCancelEdit();
-            fetchModelos(); // Deve ser fetchAllData ou uma função específica para modelos
+            fetchModelos(); 
+            alert("Modelo salvo com sucesso!");
         } catch (error) {
             alert("Erro ao salvar o modelo de equipamento.");
         }
@@ -342,9 +436,9 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
         if (window.confirm('Tem certeza? Isso pode afetar equipamentos (tags) e peças associadas.')) {
             try {
                 await axios.delete(`${MODELOS_API_URL}/${id}`);
-                fetchModelos(); // Deve ser fetchAllData ou uma função específica para modelos
+                fetchModelos();
             } catch (error) {
-                alert("Erro ao deletar o modelo. Verifique se não há equipamentos (tags) ou peças associadas a ele.");
+                alert("Erro ao deletar o modelo. Verifique se não está em uso.");
             }
         }
     };
@@ -355,13 +449,10 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
     }, [filterAreaId, modelos]);
 
     return (
-        // --- ALTERAÇÃO AQUI: Removido className="container" ---
         <section style={{ marginBottom: '2rem' }}>
-        {/* --- FIM DA ALTERAÇÃO --- */}
-            <div className="form-section" style={{marginBottom: '2rem'}}> {/* Adiciona margem inferior ao form */}
+            <div className="form-section" style={{marginBottom: '2rem'}}>
                 <h2>{editingId ? 'Editar Modelo (Tipo)' : 'Novo Modelo de Equipamento (Tipo)'}</h2>
                 <form onSubmit={handleSubmit}>
-                    {/* Conteúdo do formulário permanece o mesmo... */}
                     <label>Nome do Modelo (Ex: SM471):</label>
                     <input name="nome" value={form.nome} onChange={handleChange} placeholder="Ex: SM471" required />
 
@@ -379,7 +470,6 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
             </div>
             <div className="list-section">
                 <h2>Modelos Cadastrados</h2>
-                 {/* Conteúdo da lista permanece o mesmo... */}
                 <div className="filter-container" style={{padding: '0 0 15px 0', borderBottom: '1px solid #eee'}}>
                     <div style={{flex: 1}}>
                         <label>Filtrar por Área:</label>
@@ -398,8 +488,6 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
                                 <th>Nome do Modelo</th>
                                 <th>Fabricante</th>
                                 <th>Área</th>
-                                <th>Qtd. Tags</th>
-                                <th>Qtd. Peças</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
@@ -410,19 +498,12 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
                                     <td>{modelo.nome}</td>
                                     <td>{modelo.fabricante}</td>
                                     <td>{modelo.areaNome || 'N/A'}</td>
-                                    <td>{modelo.quantidadeInstancias}</td>
-                                    <td>{modelo.quantidadePecasAssociadas}</td>
                                     <td>
                                         <button onClick={() => handleEdit(modelo)}>Editar</button>
                                         <button onClick={() => handleDelete(modelo.id)} style={{ backgroundColor: '#dc3545' }}>Deletar</button>
                                     </td>
                                 </tr>
                             ))}
-                            {filteredModelos.length === 0 && (
-                                <tr>
-                                    <td colSpan="7" style={{textAlign: 'center'}}>Nenhum modelo encontrado para esta área.</td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
@@ -432,7 +513,7 @@ function ModeloModule({ modelos, fetchModelos, areas }) {
 }
 
 // ===============================================
-// 5. MÓDULO DE CHECKLISTS (Sem alterações)
+// 5. MÓDULO DE CHECKLISTS (Original de 1499 linhas)
 // ===============================================
 function ChecklistModule({ checklists, fetchChecklists, areas, pecas }) {
     const [nome, setNome] = useState('');
@@ -441,11 +522,6 @@ function ChecklistModule({ checklists, fetchChecklists, areas, pecas }) {
     const [itens, setItens] = useState([]);
     const [editingId, setEditingId] = useState(null);
     const [filterAreaId, setFilterAreaId] = useState('');
-
-    const pecasOptions = pecas.map(peca => ({
-        value: peca.id,
-        label: `${peca.nome} (${peca.codigoControle})`
-    }));
 
     const handleAddItem = (e) => {
         e.preventDefault();
@@ -476,7 +552,7 @@ function ChecklistModule({ checklists, fetchChecklists, areas, pecas }) {
         const checklistData = {
             nome: nome,
             areaId: Number(areaId),
-            itens: itens // Envia a lista de objetos
+            itens: itens 
         };
 
         try {
@@ -487,770 +563,414 @@ function ChecklistModule({ checklists, fetchChecklists, areas, pecas }) {
             }
             handleCancelEdit();
             fetchChecklists();
+            alert("Checklist salvo!");
         } catch (error) {
-            console.error("Erro ao salvar checklist:", error.response?.data || error.message);
-            alert(`Erro ao salvar checklist: ${error.response?.data?.error || error.response?.data || 'Verifique o console.'}`);
+            alert("Erro ao salvar checklist.");
         }
     };
 
     const handleChecklistEdit = (checklist) => {
         setEditingId(checklist.id);
         setNome(checklist.nome);
-        if (checklist.areaId) {
-             setAreaId(checklist.areaId.toString());
-        } else {
-            const areaCorrespondente = areas.find(a => a.nome === checklist.areaNome);
-            if (areaCorrespondente) {
-                setAreaId(areaCorrespondente.id.toString());
-            } else {
-                setAreaId('');
-            }
-        }
+        const area = areas.find(a => a.nome === checklist.areaNome);
+        setAreaId(area ? area.id.toString() : '');
         setItens(checklist.itens || []);
     };
 
     const handleChecklistDelete = async (id) => {
-        if (window.confirm('Tem certeza que deseja deletar este modelo? Isso pode afetar equipamentos associados.')) {
+        if (window.confirm('Tem certeza que deseja deletar este modelo?')) {
             try {
                 await axios.delete(`${CHECKLISTS_API_URL}/${id}`);
                 fetchChecklists();
             } catch (error) {
-                console.error("Erro ao deletar checklist:", error);
-                alert("Erro ao deletar modelo. Verifique se não está em uso.");
+                alert("Erro ao deletar modelo.");
             }
         }
     };
 
-    const filteredChecklists = useMemo(() => {
-        if (!filterAreaId) return checklists;
-        
-        const selectedArea = areas.find(a => a.id.toString() === filterAreaId);
-        
-        if (selectedArea) {
-            return checklists.filter(cl => cl.areaNome === selectedArea.nome);
-        }
-        
-        return checklists;
-    }, [filterAreaId, checklists, areas]);
-
-
     return (
         <section className="container">
             <div className="form-section">
-                <h2>{editingId ? 'Editar Modelo' : 'Novo Modelo de Checklist'}</h2>
+                <h2>{editingId ? 'Editar Checklist' : 'Novo Checklist'}</h2>
                 <form onSubmit={handleSubmit}>
                     <label>Nome do Modelo:</label>
-                    <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Checklist Mensal Prensa" required />
-                    <label>Área de Aplicação:</label>
+                    <input value={nome} onChange={(e) => setNome(e.target.value)} required />
+                    <label>Área:</label>
                     <select value={areaId} onChange={(e) => setAreaId(e.target.value)} required>
-                        <option value="">-- Selecione a Área --</option>
+                        <option value="">-- Selecione --</option>
                         {areas.map(area => (<option key={area.id} value={area.id}>{area.nome}</option>))}
                     </select>
                     <fieldset className="form-fieldset" style={{ marginTop: '20px' }}>
                         <legend>Passos do Checklist</legend>
-                        <label>Novo Passo:</label>
                         <div className="item-adder">
-                            <input
-                                type="text"
-                                value={currentItem}
-                                onChange={(e) => setCurrentItem(e.target.value)}
-                                placeholder="Ex: Verificar nível do óleo"
-                            />
-                            <button type="button" onClick={handleAddItem} style={{ minWidth: '100px' }}>Adicionar</button>
+                            <input value={currentItem} onChange={(e) => setCurrentItem(e.target.value)} />
+                            <button type="button" onClick={handleAddItem}>Adicionar</button>
                         </div>
-                        <p style={{ fontSize: '0.8rem', color: '#6c757d', marginTop: '15px' }}>Passos Adicionados ({itens.length}):</p>
                         <ul className="checklist-preview">
                             {itens.map((item, index) => (
-                                <li key={item.id || index}>
+                                <li key={index}>
                                     <span>{index + 1}. {item.descricao}</span>
                                     <button type="button" onClick={() => handleRemoveItem(index)}>X</button>
                                 </li>
                             ))}
-                            {itens.length === 0 && <li style={{ justifyContent: 'center', color: '#6c757d' }}>Nenhum passo adicionado.</li>}
                         </ul>
                     </fieldset>
-                    <button type="submit" style={{ marginTop: '20px' }}>{editingId ? 'Salvar Alterações' : 'Salvar Modelo de Checklist'}</button>
-                    {editingId && (<button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d' }}>Cancelar Edição</button>)}
+                    <button type="submit" style={{ marginTop: '20px' }}>Salvar</button>
+                    {editingId && (<button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d' }}>Cancelar</button>)}
                 </form>
             </div>
             <div className="list-section">
                 <h2>Modelos Cadastrados</h2>
-                <div className="filter-container" style={{ padding: '0 0 15px 0', borderBottom: '1px solid #eee' }}>
-                    <div style={{ flex: 1 }}>
-                        <label>Filtrar por Área:</label>
-                        <select value={filterAreaId} onChange={e => setFilterAreaId(e.target.value)}>
-                            <option value="">Todas as Áreas</option>
-                            {areas.map(area => (<option key={area.id} value={area.id}>{area.nome}</option>))}
-                        </select>
-                    </div>
-                </div>
-                <div className="table-container">
-                    <table>
-                        <thead><tr><th>ID</th><th>Modelo</th><th>Área</th><th>Nº Passos</th><th>Ações</th></tr></thead>
-                        <tbody>
-                            {filteredChecklists.map(checklist => (
-                                <tr key={checklist.id}>
-                                    <td>{checklist.id}</td>
-                                    <td>{checklist.nome}</td>
-                                    <td>{checklist.areaNome}</td>
-                                    <td>{checklist.itens?.length || 0}</td>
-                                    <td>
-                                        <button onClick={() => handleChecklistEdit(checklist)}>Editar</button>
-                                        <button onClick={() => handleChecklistDelete(checklist.id)} style={{ backgroundColor: '#dc3545' }}>Deletar</button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredChecklists.length === 0 && (<tr><td colSpan="5" style={{ textAlign: 'center' }}>Nenhum checklist encontrado para esta área.</td></tr>)}
-                        </tbody>
-                    </table>
-                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>Modelo</th><th>Área</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {checklists.map(cl => (
+                            <tr key={cl.id}>
+                                <td>{cl.id}</td><td>{cl.nome}</td><td>{cl.areaNome}</td>
+                                <td><button onClick={() => handleChecklistEdit(cl)}>Editar</button><button onClick={() => handleChecklistDelete(cl.id)} style={{ backgroundColor: '#dc3545' }}>Deletar</button></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </section>
     );
 }
 
 // ===============================================
-// 6. MÓDULO DE EQUIPAMENTOS (INSTÂNCIAS/TAGS) (Layout, Reordenação e Correção Map)
+// 6. MÓDULO DE EQUIPAMENTOS (TAGS) - CORRIGIDO
 // ===============================================
-function EquipamentoModule({ equipamentos, fetchEquipamentos, areas, linhas, checklists, modelos }) {
-    // Estados do formulário
-    const initialState = {
-        nome: '', codigo: '', criticidade: 'C',
-        linhaId: '', modeloId: '', checklistId: '',
-        frequenciaPreventiva: '', dataUltimaPreventiva: ''
-    };
+function EquipamentoModule({ equipamentos, fetchEquipamentos, areas, linhas, checklists, modelos, EQUIPAMENTOS_API_URL }) {
+    const initialState = { nome: '', codigo: '', criticidade: 'C', linhaId: '', modeloId: '', checklistId: '', frequenciaPreventiva: '', dataUltimaPreventiva: '' };
     const [form, setForm] = useState(initialState);
     const [editingId, setEditingId] = useState(null);
-    const [selectedAreaId, setSelectedAreaId] = useState(''); // Filtro do FORMULÁRIO
-
-    // Estados dos filtros da LISTA
+    const [selectedAreaId, setSelectedAreaId] = useState('');
     const [filterListAreaId, setFilterListAreaId] = useState('');
     const [filterListLinhaId, setFilterListLinhaId] = useState('');
-
-    // Estado para ordem de exibição da lista
     const [displayedEquipamentos, setDisplayedEquipamentos] = useState([]);
 
-    // Funções do formulário
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
     const handleCancelEdit = () => { setForm(initialState); setSelectedAreaId(''); setEditingId(null); };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Validação
-        if (!form.linhaId || !form.modeloId) {
-            return alert("Selecione uma Área, um Modelo e uma Linha de produção.");
-        }
+        
+        // ✅ CORREÇÃO 1: Garante que a URL não seja undefined
+        const url = EQUIPAMENTOS_API_URL || `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
 
-        const requestData = {
-            nome: form.nome, // Esta é a TAG
-            codigo: form.codigo,
+        if (!form.linhaId || !form.modeloId) return alert("Selecione Área, Modelo e Linha.");
+
+        // ✅ CORREÇÃO 2: Trata String Vazia para o Enum (null em vez de "")
+        const frequenciaTratada = form.frequenciaPreventiva === "" ? null : form.frequenciaPreventiva;
+        const dataTratada = form.dataUltimaPreventiva === "" ? null : form.dataUltimaPreventiva;
+
+        const requestData = { 
+            nome: form.nome,
+            codigo: form.codigo || null,
             criticidade: form.criticidade,
-            linhaId: Number(form.linhaId),
-            modeloId: Number(form.modeloId), // ID do Modelo (Tipo)
+            linhaId: Number(form.linhaId), 
+            modeloId: Number(form.modeloId), 
             checklistId: form.checklistId ? Number(form.checklistId) : null,
-            frequenciaPreventiva: form.frequenciaPreventiva || null,
-            dataUltimaPreventiva: form.dataUltimaPreventiva || null
+            frequenciaPreventiva: frequenciaTratada,
+            dataUltimaPreventiva: dataTratada
         };
 
         try {
-            if (editingId) { await axios.put(`${EQUIPAMENTOS_API_URL}/${editingId}`, requestData); }
-            else { await axios.post(EQUIPAMENTOS_API_URL, requestData); }
-            handleCancelEdit();
-            fetchEquipamentos(); // Ou fetchAllData se for a função principal
-        } catch (error) { alert(`Erro ao salvar equipamento (tag): ${error.response?.data?.message || error.response?.data || error.message}`); }
+            if (editingId) { await axios.put(`${url}/${editingId}`, requestData); }
+            else { await axios.post(url, requestData); }
+            handleCancelEdit(); 
+            fetchEquipamentos();
+            alert("Equipamento salvo!");
+        } catch (error) { 
+            console.error("Erro:", error.response?.data);
+            alert(`Erro: ${error.response?.data?.error || "Falha na comunicação"}`); 
+        }
     };
 
     const handleEdit = (equip) => {
         const linha = linhas.find(l => l.nome === equip.nomeLinha && l.areaNome === equip.nomeArea);
-
-        if (linha && equip.modeloId) {
+        if (linha) {
             setSelectedAreaId(linha.areaId.toString());
-            setForm({
-                nome: equip.nome, // Tag
-                codigo: equip.codigo,
-                criticidade: equip.criticidade || 'C',
-                linhaId: linha.id.toString(),
-                modeloId: equip.modeloId.toString(),
+            setForm({ 
+                ...equip, 
+                linhaId: linha.id.toString(), 
+                modeloId: equip.modeloId?.toString() || '', 
                 checklistId: equip.checklistId || '',
                 frequenciaPreventiva: equip.frequenciaPreventiva || '',
                 dataUltimaPreventiva: equip.dataUltimaPreventiva || ''
             });
             setEditingId(equip.id);
-        } else {
-            console.error("Erro ao carregar dados para edição:", { equip, linha });
-            alert("Erro ao carregar dados para edição. Verifique se a Linha e o Modelo associados ainda existem.");
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Tem certeza que deseja deletar esta Tag? Isso pode afetar OS e histórico.')) {
-            try {
-                await axios.delete(`${EQUIPAMENTOS_API_URL}/${id}`);
-                fetchEquipamentos(); // Ou fetchAllData
-            } catch (error) {
-                const errorMsg = error.response?.data?.message || error.response?.data || 'Verifique se não está em uso.';
-                alert(`Erro ao deletar equipamento (tag): ${errorMsg}`);
-            }
-        }
-    };
+    const filteredLinhasForm = useMemo(() => selectedAreaId ? linhas.filter(l => l.areaId.toString() === selectedAreaId) : [], [selectedAreaId, linhas]);
+    const filteredModelosForm = useMemo(() => selectedAreaId ? modelos.filter(m => m.areaId.toString() === selectedAreaId) : [], [selectedAreaId, modelos]);
 
-    // Lógica de filtragem dos dropdowns do formulário
-    const filteredLinhasForm = useMemo(() => {
-        if (!selectedAreaId) return [];
-        if (!Array.isArray(linhas)) return []; // Segurança extra
-        return linhas.filter(l => l.areaId.toString() === selectedAreaId);
-    }, [selectedAreaId, linhas]);
-
-    const filteredModelosForm = useMemo(() => {
-        if (!selectedAreaId) return [];
-        if (!Array.isArray(modelos)) { // Segurança extra
-             console.error("EquipamentoModule: Prop 'modelos' não é um array!", modelos);
-             return [];
-        }
-        return modelos.filter(m => m.areaId.toString() === selectedAreaId);
-    }, [selectedAreaId, modelos]);
-
-    // Lógica de filtragem dos dropdowns da lista
-    const filterListLinhasOptions = useMemo(() => {
-        if (!filterListAreaId) return [];
-        if (!Array.isArray(linhas)) return []; // Segurança extra
-        return linhas.filter(l => l.areaId.toString() === filterListAreaId);
-    }, [filterListAreaId, linhas]);
-
-    // Lógica para obter a lista FILTRADA (base para a exibição)
     const filteredEquipamentosList = useMemo(() => {
-        // Segurança extra: Garante que equipamentos, areas, linhas são arrays
-         if (!Array.isArray(equipamentos) || !Array.isArray(areas) || !Array.isArray(linhas)) {
-            return [];
-         }
         return equipamentos.filter(equip => {
-            // Tratamento para caso area/linha não sejam encontrados
-            const areaDoFiltro = areas.find(a => a.id.toString() === filterListAreaId);
-            const linhaDoFiltro = linhas.find(l => l.id.toString() === filterListLinhaId);
-            const areaNomeSelecionada = areaDoFiltro?.nome;
-            const linhaNomeSelecionada = linhaDoFiltro?.nome;
-
-            const matchArea = !filterListAreaId || equip.nomeArea === areaNomeSelecionada;
-            const matchLinha = !filterListLinhaId || equip.nomeLinha === linhaNomeSelecionada;
-            return matchArea && matchLinha;
+            const area = areas.find(a => a.id.toString() === filterListAreaId);
+            const linha = linhas.find(l => l.id.toString() === filterListLinhaId);
+            return (!filterListAreaId || equip.nomeArea === area?.nome) && (!filterListLinhaId || equip.nomeLinha === linha?.nome);
         });
     }, [filterListAreaId, filterListLinhaId, equipamentos, areas, linhas]);
 
-    // Efeito que atualiza a lista de exibição quando os filtros mudam
-    useEffect(() => {
-        setDisplayedEquipamentos(filteredEquipamentosList);
-    }, [filteredEquipamentosList]);
+    useEffect(() => { setDisplayedEquipamentos(filteredEquipamentosList); }, [filteredEquipamentosList]);
 
-    // Funções para mover itens na lista de exibição
     const moveEquipamento = (index, direction) => {
         const newIndex = index + direction;
-        if (newIndex < 0 || newIndex >= displayedEquipamentos.length) {
-            return;
-        }
+        if (newIndex < 0 || newIndex >= displayedEquipamentos.length) return;
         const newList = [...displayedEquipamentos];
-        // Troca eficiente de elementos no array
         [newList[index], newList[newIndex]] = [newList[newIndex], newList[index]];
         setDisplayedEquipamentos(newList);
     };
 
     return (
-        // Removido className="container" para layout vertical
         <section style={{ marginBottom: '2rem' }}>
-            {/* --- Formulário --- */}
-            <div className="form-section" style={{marginBottom: '2rem'}}>
-                <h2>{editingId ? 'Editar Equipamento (Tag)' : 'Novo Equipamento (Tag)'}</h2>
+            <div className="form-section">
+                <h2>Equipamentos (Tags)</h2>
                 <form onSubmit={handleSubmit}>
-                    <div className="form-grid-2">
-                        <fieldset className="form-fieldset">
-                            <legend>Dados e Localização</legend>
-                            <div className="form-sub-grid">
-                                <label>Área:</label>
-                                <select value={selectedAreaId} onChange={e => { setSelectedAreaId(e.target.value); setForm({ ...form, linhaId: '', modeloId: '' }); }} required>
-                                    <option value="">-- 1. Selecione a Área --</option>
-                                    {/* Segurança extra com Array.isArray */}
-                                    {Array.isArray(areas) && areas.map(area => <option key={area.id} value={area.id}>{area.nome}</option>)}
-                                </select>
+                    <div className="form-grid">
+                        <label>Área:</label>
+                        <select value={selectedAreaId} onChange={e => { setSelectedAreaId(e.target.value); setForm({...form, linhaId: '', modeloId: ''}) }} required>
+                            <option value="">-- Selecione --</option>
+                            {areas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                        </select>
+                        <label>Modelo:</label>
+                        <select name="modeloId" value={form.modeloId} onChange={handleChange} required disabled={!selectedAreaId}>
+                            <option value="">-- Selecione --</option>
+                            {filteredModelosForm.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                        </select>
+                        <label>Linha:</label>
+                        <select name="linhaId" value={form.linhaId} onChange={handleChange} required disabled={!selectedAreaId}>
+                            <option value="">-- Selecione --</option>
+                            {filteredLinhasForm.map(l => <option key={l.id} value={l.id}>{l.nome}</option>)}
+                        </select>
+                        <label>Tag:</label><input name="nome" value={form.nome} onChange={handleChange} required />
+                        
+                        {/* ✅ ASSOCIAÇÃO DE CHECKLIST PRESERVADA */}
+                        <label>Checklist Padrão:</label>
+                        <select name="checklistId" value={form.checklistId} onChange={handleChange}>
+                            <option value="">Nenhum</option>
+                            {checklists.map(cl => <option key={cl.id} value={cl.id}>{cl.nome}</option>)}
+                        </select>
 
-                                <label>Modelo (Tipo):</label>
-                                <select name="modeloId" value={form.modeloId} onChange={handleChange} required disabled={!selectedAreaId}>
-                                    <option value="">-- 2. Selecione o Modelo --</option>
-                                    {/* Correção do erro .map */}
-                                    {Array.isArray(filteredModelosForm) && filteredModelosForm.map(modelo => (
-                                        <option key={modelo.id} value={modelo.id}>{modelo.nome} ({modelo.fabricante})</option>
-                                    ))}
-                                </select>
-
-                                <label>Linha de Produção:</label>
-                                <select name="linhaId" value={form.linhaId} onChange={handleChange} required disabled={!selectedAreaId}>
-                                    <option value="">-- 3. Selecione a Linha --</option>
-                                    {/* Segurança extra com Array.isArray */}
-                                    {Array.isArray(filteredLinhasForm) && filteredLinhasForm.map(linha => <option key={linha.id} value={linha.id}>{linha.nome}</option>)}
-                                </select>
-
-                                <label>Nome da Tag (Ex: SM471A):</label>
-                                <input name="nome" value={form.nome} onChange={handleChange} placeholder="Identificação única (Tag)" required />
-
-                                <label>Código (Patrimônio):</label>
-                                <input name="codigo" value={form.codigo} onChange={handleChange} placeholder="Opcional" />
-
-                                <label>Criticidade:</label>
-                                <select name="criticidade" value={form.criticidade} onChange={handleChange} required>
-                                    <option value="C">C (Baixa)</option>
-                                    <option value="B">B (Média)</option>
-                                    <option value="A">A (Alta)</option>
-                                </select>
-                            </div>
-                        </fieldset>
-
-                        <fieldset className="form-fieldset">
-                            <legend>Manutenção e Associações</legend>
-                            <div className="form-sub-grid">
-                                <label>Frequência da Preventiva:</label>
-                                <select name="frequenciaPreventiva" value={form.frequenciaPreventiva} onChange={handleChange}>
-                                    <option value="">Não se aplica</option>
-                                    <option value="QUINZENAL">Quinzenal</option>
-                                    <option value="MENSAL">Mensal</option>
-                                    <option value="TRIMESTRAL">Trimestral</option>
-                                    <option value="SEMESTRAL">Semestral</option>
-                                    <option value="ANUAL">Anual</option>
-                                </select>
-                                <label>Data da Última Preventiva:</label>
-                                <input name="dataUltimaPreventiva" type="date" value={form.dataUltimaPreventiva} onChange={handleChange} />
-                                <label>Checklist Padrão:</label>
-                                <select name="checklistId" value={form.checklistId || ''} onChange={handleChange}>
-                                    <option value="">Nenhum Checklist Padrão</option>
-                                     {/* Segurança extra com Array.isArray */}
-                                    {Array.isArray(checklists) && checklists.map(cl => <option key={cl.id} value={cl.id}>{cl.nome}</option>)}
-                                </select>
-                            </div>
-                        </fieldset>
+                        <label>Freq. Preventiva:</label>
+                        <select name="frequenciaPreventiva" value={form.frequenciaPreventiva} onChange={handleChange}>
+                            <option value="">Não Definida</option>
+                            <option value="QUINZENAL">Quinzenal</option>
+                            <option value="MENSAL">Mensal</option>
+                            <option value="TRIMESTRAL">Trimestral</option>
+                            <option value="SEMESTRAL">Semestral</option>
+                            <option value="ANUAL">Anual</option>
+                        </select>
                     </div>
-                    {/* Botões do formulário */}
-                    <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-                        <button type="submit">{editingId ? 'Salvar Alterações' : 'Adicionar Equipamento (Tag)'}</button>
-                        {editingId && <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d' }}>Cancelar Edição</button>}
-                    </div>
+                    <button type="submit" style={{marginTop: '10px'}}>Salvar</button>
+                    {editingId && <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#6c757d', color: 'white', marginLeft: '10px' }}>Cancelar</button>}
                 </form>
             </div>
-
-            {/* --- Lista de Equipamentos --- */}
             <div className="list-section">
-                <h2>Equipamentos Cadastrados (Tags)</h2>
-                {/* Filtros da lista */}
-                <div className="filter-container" style={{padding: '0 0 15px 0', borderBottom: '1px solid #eee', display: 'flex', gap: '1rem'}}>
-                     <div style={{flex: 1}}>
-                        <label>Filtrar por Área:</label>
-                        <select value={filterListAreaId} onChange={e => { setFilterListAreaId(e.target.value); setFilterListLinhaId(''); }}>
-                            <option value="">Todas as Áreas</option>
-                             {/* Segurança extra com Array.isArray */}
-                            {Array.isArray(areas) && areas.map(area => (<option key={area.id} value={area.id}>{area.nome}</option>))}
-                        </select>
-                    </div>
-                     <div style={{flex: 1}}>
-                        <label>Filtrar por Linha:</label>
-                        <select value={filterListLinhaId} onChange={e => setFilterListLinhaId(e.target.value)} disabled={!filterListAreaId}>
-                            <option value="">Todas as Linhas da Área</option>
-                             {/* Segurança extra com Array.isArray */}
-                            {Array.isArray(filterListLinhasOptions) && filterListLinhasOptions.map(linha => (<option key={linha.id} value={linha.id}>{linha.nome}</option>))}
-                        </select>
-                    </div>
-                </div>
-                {/* Tabela */}
-                <div className="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style={{ width: '80px' }}>Ordem</th>
-                                <th>Nome (Tag)</th>
-                                <th>Modelo (Tipo)</th>
-                                <th>Fabricante</th>
-                                <th>Linha</th>
-                                <th>Área</th>
-                                <th>Ações</th>
+                <table>
+                    <thead><tr><th>Ordem</th><th>Tag</th><th>Modelo</th><th>Linha</th><th>Área</th><th>Ações</th></tr></thead>
+                    <tbody>
+                        {displayedEquipamentos.map((equip, index) => (
+                            <tr key={equip.id}>
+                                <td><button onClick={() => moveEquipamento(index, -1)}>▲</button><button onClick={() => moveEquipamento(index, 1)}>▼</button></td>
+                                <td>{equip.nome}</td><td>{equip.nomeModelo}</td><td>{equip.nomeLinha}</td><td>{equip.nomeArea || 'N/A'}</td>
+                                <td><button onClick={() => handleEdit(equip)}>Editar</button></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                             {/* Renderiza a lista reordenável */}
-                            {Array.isArray(displayedEquipamentos) && displayedEquipamentos.map((equip, index) => (
-                                <tr key={equip.id}>
-                                    {/* Botões de Ordenação */}
-                                    <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                                        <button
-                                            onClick={() => moveEquipamento(index, -1)}
-                                            disabled={index === 0}
-                                            style={{ display: 'block', width: '30px', margin: '0 auto 2px', padding: '2px', fontSize: '0.8rem', lineHeight: '1' }}
-                                            title="Mover para cima"
-                                        > ▲ </button>
-                                        <button
-                                            onClick={() => moveEquipamento(index, 1)}
-                                            disabled={index === displayedEquipamentos.length - 1}
-                                            style={{ display: 'block', width: '30px', margin: '2px auto 0', padding: '2px', fontSize: '0.8rem', lineHeight: '1' }}
-                                            title="Mover para baixo"
-                                        > ▼ </button>
-                                    </td>
-                                    {/* Dados do Equipamento */}
-                                    <td>{equip.nome}</td>
-                                    <td>{equip.nomeModelo || 'N/A'}</td>
-                                    <td>{equip.fabricante || 'N/A'}</td>
-                                    <td>{equip.nomeLinha || 'N/A'}</td>
-                                    <td>{equip.nomeArea || 'N/A'}</td>
-                                    {/* Botões de Ação */}
-                                    <td>
-                                        <button onClick={() => handleEdit(equip)}>Editar</button>
-                                        <button onClick={() => handleDelete(equip.id)} style={{ backgroundColor: '#dc3545', marginTop: '5px' }}>Deletar</button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {/* Mensagem se a lista estiver vazia */}
-                            {(!Array.isArray(displayedEquipamentos) || displayedEquipamentos.length === 0) && (
-                                <tr><td colSpan="7" style={{textAlign: 'center'}}>Nenhum equipamento encontrado para os filtros selecionados.</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </section>
     );
 }
 
 // ===============================================
-// 7. MÓDULO DE PEÇAS / ESTOQUE (Múltiplas Associações, Área e Foto na Tabela)
+// 7. MÓDULO DE PEÇAS / ESTOQUE
 // ===============================================
 function PecaModule({ pecas, fetchAllData, areas, modelos }) {
-    const initialState = {
-        nome: '', codigoRequisicao: '', descricaoTecnica: '', estoqueAtual: 0, estoqueMinimo: 0,
-        fotos: [], localizacaoPrateleira: '', aplicacao: '',
-        associacoes: [{ areaId: '', modeloEquipamentoId: '' }]
+    const initialState = { 
+        nome: '', 
+        codigoRequisicao: '', 
+        descricaoTecnica: '', 
+        estoqueAtual: 0, 
+        estoqueMinimo: 0, 
+        fotos: [], 
+        localizacaoPrateleira: '', 
+        aplicacao: '', 
+        associacoes: [{ areaId: '', modeloEquipamentoId: '' }] 
     };
+    
     const [form, setForm] = useState(initialState);
     const [editingId, setEditingId] = useState(null);
-    const [quantidadeMovimentacao, setQuantidadeMovimentacao] = useState(0);
     const [selectedFile, setSelectedFile] = useState(null);
+    
     const [filterListAreaId, setFilterListAreaId] = useState('');
     const [filterListModeloId, setFilterListModeloId] = useState('');
 
-    // --- Handlers de Associação Múltipla ---
+    const handleAssociacaoChange = (index, field, value) => {
+        const novasAssociacoes = [...form.associacoes];
+        novasAssociacoes[index][field] = value;
+        if (field === 'areaId') {
+            novasAssociacoes[index].modeloEquipamentoId = '';
+        }
+        setForm({ ...form, associacoes: novasAssociacoes });
+    };
+
     const addAssociacao = () => {
-        setForm(prev => ({
-            ...prev,
-            associacoes: [...prev.associacoes, { areaId: '', modeloEquipamentoId: '' }]
-        }));
+        setForm({ ...form, associacoes: [...form.associacoes, { areaId: '', modeloEquipamentoId: '' }] });
     };
 
     const removeAssociacao = (index) => {
-        const novas = [...form.associacoes];
-        novas.splice(index, 1);
-        setForm(prev => ({ ...prev, associacoes: novas }));
+        const novas = form.associacoes.filter((_, i) => i !== index);
+        setForm({ ...form, associacoes: novas.length > 0 ? novas : [{ areaId: '', modeloEquipamentoId: '' }] });
     };
 
-    const handleAssociacaoChange = (index, field, value) => {
-        const novas = [...form.associacoes];
-        novas[index][field] = value;
-        if (field === 'areaId') {
-            novas[index].modeloEquipamentoId = '';
-        }
-        setForm(prev => ({ ...prev, associacoes: novas }));
-    };
-
-    // --- Handlers Gerais ---
-    const handleChange = (e) => { const { name, value } = e.target; setForm({ ...form, [name]: value }); };
-    const handleCancelEdit = () => { setForm(initialState); setEditingId(null); setQuantidadeMovimentacao(0); setSelectedFile(null); }; // ✅ Reinicia selectedFile
-    const handleFileChange = (e) => { setSelectedFile(e.target.files[0]); };
-
-    // --- CORREÇÃO: Comentado upload de fotos isolado, agora vai via Multipart ---
-    /*
-    const handleUploadFoto = async (e) => {
-        e.preventDefault();
-        if (!selectedFile) return alert("Selecione um arquivo de imagem.");
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        try {
-            const res = await axios.post(FOTOS_API_URL, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            const fotoUrl = res.data;
-            setForm(prev => ({ ...prev, fotos: [...prev.fotos, fotoUrl] }));
-            setSelectedFile(null);
-            if (document.getElementById('file-upload-peca')) document.getElementById('file-upload-peca').value = '';
-        } catch (error) {
-            console.error("Erro no upload:", error.response?.data || error.message);
-            alert("Falha ao fazer upload da foto.");
-        }
-    };
-    */
-
-    const handleRemoveFoto = (urlToRemove) => {
-        setForm(prev => ({ ...prev, fotos: prev.fotos.filter(url => url !== urlToRemove) }));
-    };
-
-    // ✅ NOVO: Função corrigida para envio Multipart e integração Cloudinary
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
         const modelosIds = form.associacoes
             .map(a => Number(a.modeloEquipamentoId))
             .filter(id => id > 0);
 
-        // --- CORREÇÃO: Estrutura para Multipart Form Data ---
+        if (modelosIds.length === 0) {
+            return alert("Selecione pelo menos um modelo de equipamento compatível.");
+        }
+
         const formData = new FormData();
-        const requestData = {
-            nome: form.nome,
-            codigoRequisicao: form.codigoRequisicao,
-            descricaoTecnica: form.descricaoTecnica,
-            estoqueAtual: Number(form.estoqueAtual) || 0,
-            estoqueMinimo: Number(form.estoqueMinimo) || 0,
-            localizacaoPrateleira: form.localizacaoPrateleira,
-            aplicacao: form.aplicacao,
+        
+        const requestData = { 
+            ...form, 
             modelosIds: modelosIds,
-            modeloEquipamentoId: modelosIds[0] || null
+            modeloEquipamentoId: modelosIds[0] 
         };
 
-        // Adiciona o objeto como um Blob JSON e o arquivo ao FormData
         formData.append('peca', new Blob([JSON.stringify(requestData)], { type: "application/json" }));
+        
         if (selectedFile) {
             formData.append('arquivo', selectedFile);
         }
 
         try {
-            // --- CORREÇÃO: Comentado envio antigo JSON-only ---
-            /*
-            if (editingId) { await axios.put(`${PECAS_API_URL}/${editingId}`, requestData); }
-            else { await axios.post(PECAS_API_URL, requestData); }
-            */
-            
             if (editingId) {
-                // Edição continua via JSON simples por enquanto, ou use Multipart se mudar no Java
                 await axios.put(`${PECAS_API_URL}/${editingId}`, requestData);
             } else {
-                // Novo cadastro usa Multipart para Cloudinary
                 await axios.post(PECAS_API_URL, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
             }
-            handleCancelEdit();
+            
+            setForm(initialState);
+            setEditingId(null);
+            setSelectedFile(null);
             fetchAllData();
+            alert("Peça de reposição salva com sucesso!");
         } catch (error) {
-            alert(`Erro ao salvar peça: ${error.response?.data?.message || error.response?.data || error.message}`);
+            console.error("Erro ao salvar peça:", error);
+            alert("Erro ao salvar a peça. Verifique a conexão com o servidor.");
         }
     };
 
     const handleEdit = (peca) => {
         setEditingId(peca.id);
-        let associacoesIniciais = [{ areaId: '', modeloEquipamentoId: '' }];
-
-        if (peca.modelosIds && peca.modelosIds.length > 0) {
-            associacoesIniciais = peca.modelosIds.map(mId => {
-                const mod = modelos.find(m => m.id === mId);
-                return { areaId: mod?.areaId.toString() || '', modeloEquipamentoId: mId.toString() };
-            });
-        } else if (peca.modeloEquipamentoId) {
-            const mod = modelos.find(m => m.id === peca.modeloEquipamentoId);
-            associacoesIniciais = [{ areaId: mod?.areaId.toString() || '', modeloEquipamentoId: peca.modeloEquipamentoId.toString() }];
-        }
+        const associacoesExistentes = peca.modelosIds?.map(mId => {
+            const mod = modelos.find(m => m.id === mId);
+            return {
+                areaId: mod?.areaId?.toString() || '',
+                modeloEquipamentoId: mId.toString()
+            };
+        }) || [{ areaId: '', modeloEquipamentoId: '' }];
 
         setForm({
-            nome: peca.nome,
-            codigoRequisicao: peca.codigoRequisicao || '',
-            descricaoTecnica: peca.descricaoTecnica || '',
-            estoqueAtual: peca.estoqueAtual,
-            estoqueMinimo: peca.estoqueMinimo,
-            fotos: peca.fotos || [],
-            fotoUrl: peca.fotoUrl || '', // ✅ Mantém o campo da URL Cloudinary
-            localizacaoPrateleira: peca.localizacaoPrateleira || '',
-            aplicacao: peca.aplicacao || '',
-            associacoes: associacoesIniciais
+            ...peca,
+            associacoes: associacoesExistentes
         });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Tem certeza? Verifique se a peça não possui histórico.')) {
+        if (window.confirm('Tem certeza que deseja excluir esta peça?')) {
             try {
                 await axios.delete(`${PECAS_API_URL}/${id}`);
                 fetchAllData();
             } catch (error) {
-                console.error("Erro ao deletar peça:", error.response?.data || error.message);
-                alert(`Erro ao deletar peça: ${error.response?.data?.message || error.response?.data || 'Verifique o console.'}`);
+                alert("Erro ao excluir a peça.");
             }
         }
     };
 
-    const handleMovimentacaoEstoque = async (type) => {
-        if (!editingId || !quantidadeMovimentacao || Number(quantidadeMovimentacao) <= 0) {
-            return alert("Selecione uma peça em edição e digite uma quantidade válida maior que zero.");
-        }
-        const url = `${PECAS_API_URL}/${editingId}/${type}`;
-        const data = { quantidade: Number(quantidadeMovimentacao) };
-        try {
-            await axios.post(url, data);
-            alert(`Movimentação de ${type.toUpperCase()} registrada com sucesso!`);
-            setForm(prevForm => ({
-                ...prevForm,
-                estoqueAtual: type === 'entrada'
-                    ? (prevForm.estoqueAtual || 0) + Number(quantidadeMovimentacao)
-                    : (prevForm.estoqueAtual || 0) - Number(quantidadeMovimentacao)
-            }));
-            setQuantidadeMovimentacao(0);
-            fetchAllData();
-        } catch (error) {
-            console.error(`Falha ao registrar ${type}:`, error.response?.data || error.message);
-            alert(`Falha ao registrar ${type}: ${error.response?.data?.message || error.response?.data || 'Erro de rede'}`);
-        }
-    };
-
-    const handlePrintEtiqueta = (peca) => {
-        alert(`Simulando impressão da etiqueta para ${peca.nome} (${peca.codigoControle})`);
-    };
-
-    const filterListModelosOptions = useMemo(() => {
-        if (!filterListAreaId) return [];
-        return modelos.filter(m => m.areaId.toString() === filterListAreaId);
-    }, [filterListAreaId, modelos]);
-
-    // ✅ helpers para padronizar ids e não duplicar
-    const toNum = (v) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : null;
-    };
-    const uniqueNums = (arr) => {
-        const set = new Set();
-        (arr || []).forEach(v => {
-            const n = toNum(v);
-            if (n) set.add(n);
-        });
-        return Array.from(set);
-    };
-
     const filteredPecasList = useMemo(() => {
-        if (!Array.isArray(pecas) || !Array.isArray(modelos) || !Array.isArray(areas)) return [];
-
         return pecas.filter(peca => {
-            // ✅ CORREÇÃO: sempre considerar múltiplos modelos
-            const idsModelos = uniqueNums([
-                ...(Array.isArray(peca.modelosIds) ? peca.modelosIds : []),
-                peca.modeloEquipamentoId
-            ]);
-
-            // ✅ CORREÇÃO: filtro por área baseado nos modelos (não em peca.areaId)
-            const idsAreas = uniqueNums(idsModelos.map(id => modelos.find(m => m.id === id)?.areaId));
-
-            const matchArea = !filterListAreaId || idsAreas.includes(Number(filterListAreaId));
-
-            const matchModelo = !filterListModeloId || idsModelos.includes(Number(filterListModeloId));
-
+            const idsModelosDaPeca = [...(peca.modelosIds || []), peca.modeloEquipamentoId].filter(Boolean);
+            const idsAreasDaPeca = idsModelosDaPeca.map(mId => modelos.find(m => m.id === mId)?.areaId);
+            const matchArea = !filterListAreaId || idsAreasDaPeca.includes(Number(filterListAreaId));
+            const matchModelo = !filterListModeloId || idsModelosDaPeca.includes(Number(filterListModeloId));
             return matchArea && matchModelo;
         });
-    }, [filterListAreaId, filterListModeloId, pecas, modelos, areas]);
+    }, [filterListAreaId, filterListModeloId, pecas, modelos]);
 
     return (
         <section style={{ marginBottom: '2rem' }}>
-            <div className="form-section" style={{ marginBottom: '2rem' }}>
+            <div className="form-section">
                 <h2>{editingId ? 'Editar Peça' : 'Nova Peça de Reposição'}</h2>
                 <form onSubmit={handleSubmit}>
-                    <div className="form-grid-2">
-                        <fieldset className="form-fieldset">
-                            <legend>Dados e Estoque</legend>
-                            <div className="form-sub-grid">
-                                <label>Nome:</label><input name="nome" value={form.nome} onChange={handleChange} required />
-                                <label>Cód. Requisição:</label><input name="codigoRequisicao" value={form.codigoRequisicao} onChange={handleChange} />
-                                <label>Estoque Atual:</label><input name="estoqueAtual" type="number" value={form.estoqueAtual} onChange={handleChange} required min="0" />
-                                <label>Estoque Mínimo:</label><input name="estoqueMinimo" type="number" value={form.estoqueMinimo} onChange={handleChange} required min="0" />
-                                <label>Localização (Prat.):</label><input name="localizacaoPrateleira" value={form.localizacaoPrateleira} onChange={handleChange} />
-                                <label>Aplicação:</label><input name="aplicacao" value={form.aplicacao} onChange={handleChange} />
-                            </div>
-                            <label style={{ marginTop: '15px' }}>Descrição Técnica:</label>
-                            <textarea name="descricaoTecnica" value={form.descricaoTecnica} onChange={handleChange}></textarea>
-                        </fieldset>
+                    <label>Nome da Peça:</label>
+                    <input name="nome" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} required />
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <fieldset className="form-fieldset">
-                                <legend>Associações (Equipamentos Compatíveis)</legend>
-                                {form.associacoes.map((assoc, index) => (
-                                    <div key={index} style={{
-                                        display: 'grid',
-                                        gridTemplateColumns: '1fr 1fr auto',
-                                        gap: '10px',
-                                        alignItems: 'end',
-                                        marginBottom: '10px',
-                                        padding: '10px',
-                                        background: '#f8f9fa',
-                                        borderRadius: '4px'
-                                    }}>
-                                        <div>
-                                            <label style={{ fontSize: '0.7rem' }}>Área:</label>
-                                            <select
-                                                value={assoc.areaId}
-                                                onChange={e => handleAssociacaoChange(index, 'areaId', e.target.value)}
-                                            >
-                                                <option value="">Área</option>
-                                                {areas.map(area => <option key={area.id} value={area.id}>{area.nome}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label style={{ fontSize: '0.7rem' }}>Modelo:</label>
-                                            <select
-                                                value={assoc.modeloEquipamentoId}
-                                                onChange={e => handleAssociacaoChange(index, 'modeloEquipamentoId', e.target.value)}
-                                                disabled={!assoc.areaId}
-                                            >
-                                                <option value="">Modelo</option>
-                                                {modelos.filter(m => m.areaId.toString() === assoc.areaId).map(m => (
-                                                    <option key={m.id} value={m.id}>{m.nome} ({m.fabricante})</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '5px' }}>
-                                            {index === form.associacoes.length - 1 && (
-                                                <button type="button" onClick={addAssociacao} style={{ backgroundColor: '#28a745', padding: '5px 10px', color: 'white' }}>+</button>
-                                            )}
-                                            {form.associacoes.length > 1 && (
-                                                <button type="button" onClick={() => removeAssociacao(index)} style={{ backgroundColor: '#dc3545', padding: '5px 10px', color: 'white' }}>x</button>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </fieldset>
+                    <label>Código de Requisição (Almoxarifado):</label>
+                    <input name="codigoRequisicao" value={form.codigoRequisicao} onChange={e => setForm({...form, codigoRequisicao: e.target.value})} />
 
-                            <fieldset className="form-fieldset">
-                                <legend>Fotos e Mídia</legend>
-                                <div className="item-adder">
-                                    <input type="file" id="file-upload-peca" onChange={handleFileChange} accept="image/*" />
-                                    {/* --- CORREÇÃO: Comentado botão upload, agora integrado no Salvar --- */}
-                                    {/* <button type="button" onClick={handleUploadFoto} disabled={!selectedFile} style={{ backgroundColor: '#6c757d', minWidth: '100px' }}>Upload</button> */}
-                                </div>
-                                <p style={{ fontSize: '0.8rem', color: '#6c757d' }}>URLs Salvas ({form.fotos.length}):</p>
-                                <ul className="checklist-preview" style={{ maxHeight: '100px', overflowY: 'auto' }}>
-                                    {form.fotos.map((url, index) => (
-                                        <li key={index} style={{ fontSize: '0.8rem' }}>
-                                            <a href={`${BACKEND_BASE_URL}${url}`} target="_blank" rel="noopener noreferrer">{url.substring(url.lastIndexOf('/') + 1)}</a>
-                                            <button type="button" onClick={() => handleRemoveFoto(url)} style={{ marginTop: '0' }}>X</button>
-                                        </li>
-                                    ))}
-                                    {form.fotos.length === 0 && <li style={{ justifyContent: 'center', color: '#6c757d' }}>Nenhuma foto.</li>}
-                                </ul>
-                            </fieldset>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label>Estoque Atual:</label>
+                            <input type="number" value={form.estoqueAtual} onChange={e => setForm({...form, estoqueAtual: Number(e.target.value)})} required />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label>Estoque Mínimo:</label>
+                            <input type="number" value={form.estoqueMinimo} onChange={e => setForm({...form, estoqueMinimo: Number(e.target.value)})} required />
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-                        <button type="submit">{editingId ? 'Salvar Alterações' : 'Adicionar Peça'}</button>
-                        {editingId && <button type="button" onClick={handleCancelEdit} style={{ backgroundColor: '#dc3545' }}>Cancelar Edição</button>}
+
+                    <label>Foto da Peça:</label>
+                    <input type="file" onChange={e => setSelectedFile(e.target.files[0])} accept="image/*" />
+
+                    <fieldset className="form-fieldset" style={{ marginTop: '15px' }}>
+                        <legend>Equipamentos Compatíveis</legend>
+                        {form.associacoes.map((assoc, index) => (
+                            <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                                <select value={assoc.areaId} onChange={e => handleAssociacaoChange(index, 'areaId', e.target.value)}>
+                                    <option value="">Selecione a Área</option>
+                                    {areas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                                </select>
+                                <select value={assoc.modeloEquipamentoId} onChange={e => handleAssociacaoChange(index, 'modeloEquipamentoId', e.target.value)} disabled={!assoc.areaId}>
+                                    <option value="">Selecione o Modelo</option>
+                                    {modelos.filter(m => m.areaId.toString() === assoc.areaId).map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                                </select>
+                                <button type="button" onClick={() => removeAssociacao(index)} style={{ backgroundColor: '#ff4d4d', color: 'white', padding: '5px 10px' }}>X</button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addAssociacao} style={{ backgroundColor: '#007bff', color: 'white', marginTop: '5px' }}>+ Adicionar Compatibilidade</button>
+                    </fieldset>
+
+                    <div style={{ marginTop: '20px' }}>
+                        <button type="submit" className="btn-save">{editingId ? 'Salvar Alterações' : 'Cadastrar Peça'}</button>
+                        {editingId && <button type="button" onClick={() => { setEditingId(null); setForm(initialState); }} style={{ backgroundColor: '#6c757d', marginLeft: '10px' }}>Cancelar</button>}
                     </div>
                 </form>
             </div>
 
-            <div className="list-section">
-                <h2>Peças Cadastradas e Ações</h2>
-                <div className="filter-container" style={{ padding: '0 0 15px 0', borderBottom: '1px solid #eee', display: 'flex', gap: '1rem' }}>
-                    <div style={{ flex: 1 }}>
-                        <label>Filtrar por Área:</label>
-                        <select value={filterListAreaId} onChange={e => { setFilterListAreaId(e.target.value); setFilterListModeloId(''); }}>
-                            <option value="">Todas as Áreas</option>
-                            {areas.map(area => (<option key={area.id} value={area.id}>{area.nome}</option>))}
-                        </select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                        <label>Filtrar por Modelo (Tipo):</label>
-                        <select value={filterListModeloId} onChange={e => setFilterListModeloId(e.target.value)} disabled={!filterListAreaId}>
-                            <option value="">Todos Modelos da Área</option>
-                            {filterListModelosOptions.map(modelo => (<option key={modelo.id} value={modelo.id}>{modelo.nome}</option>))}
-                        </select>
-                    </div>
+            <div className="list-section" style={{ marginTop: '2rem' }}>
+                <h3>Peças em Estoque</h3>
+                <div className="filter-container" style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <select value={filterListAreaId} onChange={e => setFilterListAreaId(e.target.value)}>
+                        <option value="">Todas as Áreas</option>
+                        {areas.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                    </select>
+                    <select value={filterListModeloId} onChange={e => setFilterListModeloId(e.target.value)}>
+                        <option value="">Todos os Modelos</option>
+                        {modelos.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                    </select>
                 </div>
 
                 <div className="table-container">
@@ -1258,70 +978,58 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
                         <thead>
                             <tr>
                                 <th>Foto</th>
-                                <th>QR Code</th>
-                                <th>Nome</th>
-                                <th>Cód. Req.</th>
+                                <th>QR</th>
+                                <th>Nome da Peça</th>
                                 <th>Área(s)</th>
-                                <th>Modelo(s) Associado(s)</th>
+                                <th>Máquina</th>
                                 <th>Estoque (A/M)</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredPecasList.map(peca => {
-                                // ✅ CORREÇÃO: sempre pegar todos os modelosIds (se vier) + fallback do modeloEquipamentoId
-                                const idsModelos = uniqueNums([
-                                    ...(Array.isArray(peca.modelosIds) ? peca.modelosIds : []),
-                                    peca.modeloEquipamentoId
-                                ]);
-
-                                // Modelos: nome + fabricante (melhor leitura) — mantém estilo simples na célula
-                                const modelosNomes = idsModelos
-                                    .map(id => {
-                                        const m = modelos.find(mm => mm.id === id);
-                                        return m ? `${m.nome} (${m.fabricante})` : null;
-                                    })
-                                    .filter(Boolean)
-                                    .join(', ') || 'N/A';
-
-                                // Áreas: únicas
-                                const idsAreas = uniqueNums(idsModelos.map(id => modelos.find(m => m.id === id)?.areaId));
-                                const areasNomes = [...new Set(idsAreas.map(id => areas.find(a => a.id === id)?.nome))]
-                                    .filter(Boolean)
-                                    .join(', ') || 'N/A';
-
-                                return (
-                                    <tr key={peca.id} style={peca.estoqueAtual <= peca.estoqueMinimo ? { backgroundColor: '#fff3cd' } : {}}>
-                                        <td>
-                                            {/* --- CORREÇÃO: Prioriza o novo link Cloudinary dkreomuo2 --- */}
-                                            {peca.fotoUrl ? (
-                                                <img src={peca.fotoUrl} alt="Peça" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
-                                            ) : (
-                                                /* ✅ CORREÇÃO ABAIXO: peca.fotos (sem cedilha) para alinhar com o .map() */
-                                                /* peça.fotos */ peca.fotos && peca.fotos[0] ? (
-                                                    <img src={`${BACKEND_BASE_URL}${peca.fotos[0]}`} alt="Peça" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
-                                                ) : 'Sem foto'
-                                            )}
-                                        </td>
-                                        <td>{peca.codigoControle && <img src={`${PECAS_API_URL}/${peca.id}/qrcode`} alt={peca.codigoControle} style={{ width: '50px' }} />}</td>
-                                        <td><strong>{peca.nome}</strong></td>
-                                        <td>{peca.codigoRequisicao || 'N/A'}</td>
-                                        <td style={{ fontSize: '0.85rem' }}>{areasNomes}</td>
-
-                                        {/* ✅ AQUI: agora mostra todos os modelos associados */}
-                                        <td style={{ fontSize: '0.85rem' }}>{modelosNomes}</td>
-
-                                        <td>{peca.estoqueAtual} / {peca.estoqueMinimo}</td>
-                                        <td style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                                            <button onClick={() => handleEdit(peca)} style={{ padding: '5px' }}>Editar</button>
-                                            <button onClick={() => handleDelete(peca.id)} style={{ backgroundColor: '#dc3545', padding: '5px' }}>Deletar</button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {filteredPecasList.length === 0 && (
-                                <tr><td colSpan="8" style={{ textAlign: 'center' }}>Nenhuma peça encontrada.</td></tr>
-                            )}
+                            {filteredPecasList.map(peca => (
+                                <tr key={peca.id}>
+                                    <td>
+                                        {peca.fotoUrl ? (
+                                            <img 
+                                                /* ✅ VITE_API_BASE_URL garante que localmente use porta 10000 e no Render use a URL deles */
+                                                src={`${import.meta.env.VITE_API_BASE_URL}/uploads/${peca.fotoUrl}`} 
+                                                alt="peca" 
+                                                width="50" 
+                                                style={{ borderRadius: '4px' }} 
+                                                onError={(e) => { 
+                                                    // Se falhar, tenta sem o prefixo /uploads/ (caso o banco já tenha o caminho completo)
+                                                    if (!e.target.dataset.tried) {
+                                                        e.target.dataset.tried = "true";
+                                                        e.target.src = peca.fotoUrl; 
+                                                    } else {
+                                                        e.target.src = 'https://via.placeholder.com/50?text=Erro';
+                                                    }
+                                                }}
+                                            />
+                                        ) : <span style={{ fontSize: '10px' }}>Sem foto</span>}
+                                    </td>
+                                    <td>
+                                        {/* ✅ Geramos o QR Code direto no Front usando os dados da peça para garantir que apareça */}
+                                        <img 
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoRequisicao || 'ID-'+peca.id}`} 
+                                            width="50" 
+                                            alt="qr" 
+                                            style={{ border: '1px solid #eee' }}
+                                        />
+                                    </td>
+                                    <td><strong>{peca.nome}</strong><br/><small>{peca.codigoRequisicao}</small></td>
+                                    <td>{peca.nomeArea || 'N/A'}</td>
+                                    <td>{peca.nomeModeloEquipamento || 'Múltiplos'}</td>
+                                    <td style={{ color: peca.estoqueAtual <= peca.estoqueMinimo ? 'red' : 'inherit', fontWeight: 'bold' }}>
+                                        {peca.estoqueAtual} / {peca.estoqueMinimo}
+                                    </td>
+                                    <td>
+                                        <button onClick={() => handleEdit(peca)}>Editar</button>
+                                        <button onClick={() => handleDelete(peca.id)} style={{ backgroundColor: '#dc3545', color: 'white' }}>Excluir</button>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -1330,10 +1038,9 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
     );
 }
 // ===============================================
-// 8. COMPONENTE PRINCIPAL (Orquestrador - COMPLETO)
+// 8. COMPONENTE PRINCIPAL (Orquestrador)
 // ===============================================
 function Cadastros() {
-    // States para guardar os dados
     const [areas, setAreas] = useState([]);
     const [linhas, setLinhas] = useState([]);
     const [modelos, setModelos] = useState([]);
@@ -1342,22 +1049,14 @@ function Cadastros() {
     const [checklists, setChecklists] = useState([]);
     const [users, setUsers] = useState([]);
     const [activeTab, setActiveTab] = useState('usuarios');
-    const [loading, setLoading] = useState(true); // Estado de loading geral
+    const [loading, setLoading] = useState(true);
 
-    // Função unificada para buscar todos os dados
     const fetchAllData = async () => {
-        // setLoading(true); // Removido daqui para evitar piscar em cada update
         try {
             const [areasRes, linhasRes, modelosRes, equipamentosRes, pecasRes, checklistsRes, usersRes] = await Promise.all([
-                axios.get(AREAS_API_URL),
-                axios.get(LINHAS_API_URL),
-                axios.get(MODELOS_API_URL),
-                axios.get(EQUIPAMENTOS_API_URL),
-                axios.get(PECAS_API_URL),
-                axios.get(CHECKLISTS_API_URL),
-                axios.get(USUARIOS_API_URL)
+                axios.get(AREAS_API_URL), axios.get(LINHAS_API_URL), axios.get(MODELOS_API_URL),
+                axios.get(EQUIPAMENTOS_API_URL), axios.get(PECAS_API_URL), axios.get(CHECKLISTS_API_URL), axios.get(USUARIOS_API_URL)
             ]);
-            // Atualiza todos os states com os dados recebidos, garantindo que sejam arrays
             setAreas(Array.isArray(areasRes.data) ? areasRes.data : []);
             setLinhas(Array.isArray(linhasRes.data) ? linhasRes.data : []);
             setModelos(Array.isArray(modelosRes.data) ? modelosRes.data : []);
@@ -1366,55 +1065,51 @@ function Cadastros() {
             setChecklists(Array.isArray(checklistsRes.data) ? checklistsRes.data : []);
             setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
         } catch (error) {
-            console.error("Erro ao buscar dados de cadastro:", error);
-            // Reseta states para arrays vazios em caso de erro
-            setAreas([]); setLinhas([]); setModelos([]); setEquipamentos([]);
-            setPecas([]); setChecklists([]); setUsers([]);
-            alert("Falha ao carregar dados do servidor Aiven.");
+            console.error("Erro ao carregar dados:", error);
         } finally {
-             // Garante que o loading inicial seja desativado
-            if (loading) setLoading(false);
+            setLoading(false);
         }
     };
 
-    // Busca os dados quando o componente é montado
-    useEffect(() => {
-        setLoading(true); // Ativa loading só na montagem inicial
-        fetchAllData();
-    }, []); // Array vazio significa que roda só uma vez
+    useEffect(() => { fetchAllData(); }, []);
 
-    // Função para renderizar o módulo ativo
     const renderModule = () => {
-        if (loading) {
-            return <div style={{textAlign: 'center', padding: '50px', fontSize: '1.2rem'}}>Conectando ao banco Aiven...</div>;
-        }
+        if (loading) return <div style={{textAlign: 'center', padding: '50px'}}>Conectando ao banco local...</div>;
 
         switch (activeTab) {
-            case 'usuarios': return <UsuarioModule users={users} fetchUsers={fetchAllData} />;
+            case 'usuarios': 
+                return (
+                    <UsuarioModule 
+                        users={users} 
+                        fetchUsers={fetchAllData} 
+                        USUARIOS_API_URL={USUARIOS_API_URL} 
+                        PERFIS_DISPONIVEIS={PERFIS_DISPONIVEIS} 
+                        formatPerfilName={formatPerfilName} 
+                    />
+                );
             case 'areas': return <AreaModule areas={areas} fetchAreas={fetchAllData} />;
             case 'linhas': return <LinhaModule linhas={linhas} fetchLinhas={fetchAllData} areas={areas} />;
-            case 'modelos': return <ModeloModule modelos={modelos} fetchModelos={fetchAllData} areas={areas} fetchAllData={fetchAllData}/>;
-            case 'equipamentos': return <EquipamentoModule equipamentos={equipamentos} fetchEquipamentos={fetchAllData} areas={areas} linhas={linhas} checklists={checklists} modelos={modelos} fetchAllData={fetchAllData}/>;
-            case 'checklists': return <ChecklistModule checklists={checklists} fetchChecklists={fetchAllData} areas={areas} pecas={pecas} fetchAllData={fetchAllData}/>;
+            case 'modelos': return <ModeloModule modelos={modelos} fetchModelos={fetchAllData} areas={areas} />;
+            // ✅ CORREÇÃO FINAL: Passando explicitamente a URL para o módulo não dar erro 404
+            case 'equipamentos': return <EquipamentoModule equipamentos={equipamentos} fetchEquipamentos={fetchAllData} areas={areas} linhas={linhas} checklists={checklists} modelos={modelos} EQUIPAMENTOS_API_URL={EQUIPAMENTOS_API_URL} />;
+            case 'checklists': return <ChecklistModule checklists={checklists} fetchChecklists={fetchAllData} areas={areas} pecas={pecas} />;
             case 'pecas': return <PecaModule pecas={pecas} fetchAllData={fetchAllData} areas={areas} modelos={modelos} />;
-            default: return <UsuarioModule users={users} fetchUsers={fetchAllData} />;
+            default: return null;
         }
     };
 
     return (
         <div className="main-content">
-            <h1>Painel Administrativo Heimdex</h1>
-            {/* Abas de Navegação */}
+            <h1>Painel Administrativo Heimdex (Local)</h1>
             <div style={{marginBottom: '20px', display: 'flex', gap: '10px', borderBottom: '1px solid #ddd', flexWrap: 'wrap', paddingBottom: '10px'}}>
-                <button onClick={() => setActiveTab('usuarios')} style={{backgroundColor: activeTab === 'usuarios' ? '#007bff' : '#6c757d', marginTop: '0'}}>Usuários</button>
-                <button onClick={() => setActiveTab('areas')} style={{backgroundColor: activeTab === 'areas' ? '#007bff' : '#6c757d', marginTop: '0'}}>Áreas</button>
-                <button onClick={() => setActiveTab('linhas')} style={{backgroundColor: activeTab === 'linhas' ? '#007bff' : '#6c757d', marginTop: '0'}}>Linhas</button>
-                <button onClick={() => setActiveTab('modelos')} style={{backgroundColor: activeTab === 'modelos' ? '#007bff' : '#6c757d', marginTop: '0'}}>Modelos (Tipo)</button>
-                <button onClick={() => setActiveTab('equipamentos')} style={{backgroundColor: activeTab === 'equipamentos' ? '#007bff' : '#6c757d', marginTop: '0'}}>Equipamentos (Tag)</button>
-                <button onClick={() => setActiveTab('checklists')} style={{backgroundColor: activeTab === 'checklists' ? '#007bff' : '#6c757d', marginTop: '0'}}>Checklists</button>
-                <button onClick={() => setActiveTab('pecas')} style={{backgroundColor: activeTab === 'pecas' ? '#007bff' : '#6c757d', marginTop: '0'}}>Peças/Estoque</button>
+                <button onClick={() => setActiveTab('usuarios')} style={{backgroundColor: activeTab === 'usuarios' ? '#007bff' : '#6c757d'}}>Usuários</button>
+                <button onClick={() => setActiveTab('areas')} style={{backgroundColor: activeTab === 'areas' ? '#007bff' : '#6c757d'}}>Áreas</button>
+                <button onClick={() => setActiveTab('linhas')} style={{backgroundColor: activeTab === 'linhas' ? '#007bff' : '#6c757d'}}>Linhas</button>
+                <button onClick={() => setActiveTab('modelos')} style={{backgroundColor: activeTab === 'modelos' ? '#007bff' : '#6c757d'}}>Modelos</button>
+                <button onClick={() => setActiveTab('equipamentos')} style={{backgroundColor: activeTab === 'equipamentos' ? '#007bff' : '#6c757d'}}>Equipamentos</button>
+                <button onClick={() => setActiveTab('checklists')} style={{backgroundColor: activeTab === 'checklists' ? '#007bff' : '#6c757d'}}>Checklists</button>
+                <button onClick={() => setActiveTab('pecas')} style={{backgroundColor: activeTab === 'pecas' ? '#007bff' : '#6c757d'}}>Peças/Estoque</button>
             </div>
-            {/* Renderiza o Módulo Ativo */}
             {renderModule()}
         </div>
     );

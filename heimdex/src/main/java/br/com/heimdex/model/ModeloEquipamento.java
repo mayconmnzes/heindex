@@ -1,5 +1,6 @@
 package br.com.heimdex.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,8 +25,10 @@ public class ModeloEquipamento {
     @Column(length = 100)
     private String fabricante;
 
+    // ✅ CORREÇÃO: Ignora a lista de modelos dentro da área para evitar o erro de recursão
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "area_id")
+    @JsonIgnoreProperties("modelos") 
     private Area area;
 
     // --- MÉTODOS MANUAIS PARA COMPILAÇÃO ---

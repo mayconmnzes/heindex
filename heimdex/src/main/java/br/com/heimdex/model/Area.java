@@ -1,6 +1,6 @@
 package br.com.heimdex.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -23,28 +23,25 @@ public class Area {
     @Column(nullable = false, unique = true, length = 100)
     private String nome;
 
+    // ✅ CORREÇÃO: Usando JsonIgnoreProperties para evitar loop infinito com Linhas
     @OneToMany(mappedBy = "area", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference 
+    @JsonIgnoreProperties("area") 
     private Set<LinhaDeProducao> linhas;
 
+    // ✅ CORREÇÃO: Usando JsonIgnoreProperties para evitar o erro 'area-modelo'
     @OneToMany(mappedBy = "area", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonManagedReference("area-modelo") 
+    @JsonIgnoreProperties("area") 
     private Set<ModeloEquipamento> modelos;
 
-    // --- MÉTODOS MANUAIS PARA GARANTIR COMPILAÇÃO NO DOCKER ---
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    // --- MÉTODOS MANUAIS ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
+    
+    public Set<LinhaDeProducao> getLinhas() { return linhas; }
+    public void setLinhas(Set<LinhaDeProducao> linhas) { this.linhas = linhas; }
+    
+    public Set<ModeloEquipamento> getModelos() { return modelos; }
+    public void setModelos(Set<ModeloEquipamento> modelos) { this.modelos = modelos; }
 }

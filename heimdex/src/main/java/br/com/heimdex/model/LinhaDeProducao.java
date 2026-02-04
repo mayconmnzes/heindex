@@ -1,6 +1,6 @@
 package br.com.heimdex.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -20,32 +20,14 @@ public class LinhaDeProducao {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "area_id", nullable = false)
-    @JsonBackReference 
+    // ✅ CORREÇÃO: Usando ignore para permitir visualização da área sem loop
+    @JsonIgnoreProperties({"linhas", "modelos"}) 
     private Area area;
 
-    // --- MÉTODOS MANUAIS PARA GARANTIR COMPILAÇÃO NO DOCKER ---
-    
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getNome() {
-        return nome;
-    }
-
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public Area getArea() {
-        return area;
-    }
-
-    public void setArea(Area area) {
-        this.area = area;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
+    public Area getArea() { return area; }
+    public void setArea(Area area) { this.area = area; }
 }

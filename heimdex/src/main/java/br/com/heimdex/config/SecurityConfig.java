@@ -24,26 +24,39 @@ public class SecurityConfig {
     }
 
     /**
-     * Configura as regras de segurança HTTP e CORS.
+     * Configura as regras de segurança HTTP, CORS e Liberação de Recursos.
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Habilita CORS configurado no WebConfig
+            // 1. Habilita CORS configurado no WebConfig (Vercel/Render/Local)
             .cors(withDefaults())
+
+            // 2. Configurações para o H2 Console funcionar localmente
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin())) 
             
-            // Desabilita CSRF para APIs REST Stateless
-            .csrf(csrf -> csrf.disable())
+            // 3. Desabilita CSRF para APIs REST Stateless e ignora para o H2
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/h2-console/**")
+                .disable()
+            )
             
-            // Define política de sessão como Stateless
+            // 4. Define política de sessão como Stateless
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             
-            // Configuração das regras de autorização
+            // 5. Configuração das regras de autorização
             .authorizeHttpRequests(authorize -> authorize
-                // Libera endpoints de monitoramento (Essencial para o Render não dormir)
+                // Libera o Console do Banco de Dados H2
+                .requestMatchers("/h2-console/**").permitAll()
+                
+                // ✅ LIBERAÇÃO DE IMAGENS: Essencial para Foto e QR Code aparecerem
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/uploaded-photos/**").permitAll()
+                
+                // Libera endpoints de monitoramento (Essencial para o Render)
                 .requestMatchers("/actuator/**").permitAll()
                 
-                // Libera todos os endpoints da API
+                // Libera todos os endpoints da API (Incluindo QR Code em /api/pecas/*/qrcode)
                 .requestMatchers("/api/**").permitAll()
                 
                 // Permite acesso irrestrito a qualquer outra URL necessária

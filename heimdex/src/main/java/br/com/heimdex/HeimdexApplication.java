@@ -21,16 +21,21 @@ public class HeimdexApplication {
         return args -> {
             if (usuarioRepository.count() == 0) {
                 Usuario admin = new Usuario();
-                // ✅ Ajustado para garantir compatibilidade com a String
+                
+                // ✅ CORREÇÃO OBRIGATÓRIA: Adicionando o nome para evitar erro de NULL no H2
+                admin.setNomeCompleto("Administrador do Sistema"); 
+                admin.setMatricula("000001");
+                
                 admin.setEmail("admin@heimdex.com.br");
                 admin.setSenha(passwordEncoder.encode("admin123"));
                 
-                // ✅ Se sua Model espera String, usamos .name() para converter o Enum
-                // Se o erro do setNome persistir, verifique o nome do campo na sua classe Usuario.java
+                // ✅ Conversão do Enum para String (ajustado conforme sua Model)
                 admin.setPerfil(PerfilUsuario.ADMIN.name()); 
                 
                 usuarioRepository.save(admin);
-                System.out.println("✅ Backend Heimdex iniciado e conectado ao Aiven!");
+                
+                // ✅ Mensagem atualizada para o ambiente Local
+                System.out.println("✅ Backend Heimdex iniciado com banco H2 Local!");
             }
         };
     }
