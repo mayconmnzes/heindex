@@ -47,7 +47,21 @@ public class EquipamentoController {
 
     @PostMapping
     public ResponseEntity<EquipamentoResponseDTO> createEquipamento(@RequestBody EquipamentoRequestDTO dto) {
+        // Validação mínima
+        if (dto.getNome() == null || dto.getNome().trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
         Equipamento equipamento = convertToEntity(dto);
+
+        // Gera código se não informado e garante unicidade
+        String codigo = (dto.getCodigo() != null && !dto.getCodigo().trim().isEmpty())
+                ? dto.getCodigo().trim()
+                : generateBaseCodigo(dto.getNome());
+
+        String unique = ensureUniqueCodigo(codigo, null);
+        equipamento.setCodigo(unique);
+
         Equipamento savedEquipamento = equipamentoRepository.save(equipamento);
         return new ResponseEntity<>(convertToResponseDTO(savedEquipamento), HttpStatus.CREATED);
     }
@@ -57,8 +71,15 @@ public class EquipamentoController {
         return equipamentoRepository.findById(id)
                 .map(equipamentoExistente -> {
                     equipamentoExistente.setNome(dto.getNome());
-                    String novoCodigo = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? null : dto.getCodigo();
-                    equipamentoExistente.setCodigo(novoCodigo);
+
+                    String novoCodigo = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? null : dto.getCodigo().trim();
+
+                    // Se não enviou novo codigo, gera a partir do nome; garante unicidade (permitindo manter o código atual)
+                    if (novoCodigo == null || novoCodigo.isEmpty()) {
+                        novoCodigo = generateBaseCodigo(dto.getNome());
+                    }
+                    String unique = ensureUniqueCodigo(novoCodigo, equipamentoExistente.getId());
+                    equipamentoExistente.setCodigo(unique);
 
                     equipamentoExistente.setCriticidade(dto.getCriticidade());
                     equipamentoExistente.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
@@ -89,7 +110,7 @@ public class EquipamentoController {
     private Equipamento convertToEntity(EquipamentoRequestDTO dto) {
         Equipamento e = new Equipamento();
         e.setNome(dto.getNome());
-        e.setCodigo(dto.getCodigo());
+        // código será aplicado no create/update para garantir unicidade e não-null
         e.setCriticidade(dto.getCriticidade());
         e.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
         e.setDataUltimaPreventiva(dto.getDataUltimaPreventiva());
@@ -144,5 +165,45 @@ public class EquipamentoController {
         dto.setChecklistId(e.getChecklist() != null ? e.getChecklist().getId() : null);
 
         return dto;
+    }
+
+    // ---------- Helpers para geração/uniqueness de código ----------
+    private String generateBaseCodigo(String nome) {
+        if (nome == null) return "EQ";
+        // Remove caracteres não alfanuméricos e deixa em maiúsculas
+        String base = nome.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
+        if (base.isEmpty()) base = "EQ";
+        if (base.length() > 10) base = base.substring(0, 10);
+        return base;
+    }
+
+    /**
+     * Garante unicidade do código. Se já existir, acrescenta sufixo _1, _2, ...
+     * @param candidate código base
+     * @param currentEquipamentoId quando for atualização, id do equipamento atual (para permitir manter o mesmo código)
+     * @return código único
+     */
+    private String ensureUniqueCodigo(String candidate, Long currentEquipamentoId) {
+        String tryCode = candidate;
+        int suffix = 0;
+        while (true) {
+            boolean exists = equipamentoRepository.existsByCodigo(tryCode);
+            // Se existe e é o próprio equipamento (no update), aceita
+            if (exists) {
+                if (currentEquipamentoId != null) {
+                    // permite se o equipamento com esse código for o mesmo que estamos atualizando
+                    Equipamento found = equipamentoRepository.findByCodigo(tryCode).orElse(null);
+                    if (found != null && found.getId() != null && found.getId().equals(currentEquipamentoId)) {
+                        return tryCode;
+                    }
+                }
+                // senão tenta próximo sufixo
+                suffix++;
+                tryCode = candidate + "_" + suffix;
+                continue;
+            }
+            // não existe -> único
+            return tryCode;
+        }
     }
 }

@@ -77,8 +77,13 @@ function Relatorios() {
             setLinhas(linhasRes.data);
             setModelos(modelosRes.data);
 
+            // buscar movimentações avulsas - backend retorna todas avulsas quando ?nome= vazio
             const avulsasRes = await axios.get(`${ESTOQUE_API_URL}/historico-equipamento?nome=`);
-            setMovimentacoesAvulsas(avulsasRes.data.filter(m => m.tipoMovimentacao === 'SAIDA_AVULSA'));
+            // aceitar tanto SAIDA_AVULSA quanto SAIDA (algumas entradas usam 'SAIDA')
+            const avulsasArray = Array.isArray(avulsasRes.data) ? avulsasRes.data : [];
+            setMovimentacoesAvulsas(avulsasArray.filter(m => {
+                return m && (m.tipoMovimentacao === 'SAIDA_AVULSA' || m.tipoMovimentacao === 'SAIDA');
+            }));
 
             setLoadingEstoque(false); setLoadingAbc(false); setLoadingConsumo(false);
             setLoadingMttr(false); setLoadingOsAbertas(false);
@@ -121,10 +126,23 @@ function Relatorios() {
             const dadosOS = consumoPorEquipamento.find(c => c.nomeEquipamento === nomeEq);
             consolidadoOS[nomeEq] = dadosOS ? dadosOS.pecasConsumidas.reduce((acc, p) => acc + p.totalConsumido, 0) : 0;
 
-            // Soma Avulso
+            // Soma Avulso (mais robusta)
+            const nomeEqLower = nomeEq.toLowerCase();
             consolidadoAvulso[nomeEq] = movimentacoesAvulsas.reduce((acc, mov) => {
-                const match = mov.observacao?.match(/equipamento:\s*(.*)/i);
-                return (match && match[1].trim() === nomeEq) ? acc + mov.quantidade : acc;
+                if (!mov) return acc;
+                // 1) se DTO já trouxe nomeEquipamento (mais confiável)
+                if (mov.nomeEquipamento && mov.nomeEquipamento.toLowerCase() === nomeEqLower) {
+                    return acc + (mov.quantidade ?? 0);
+                }
+                // 2) se vier equipamentoId no DTO e bater com eq.id
+                if (mov.equipamentoId && Number(mov.equipamentoId) === Number(eq.id)) {
+                    return acc + (mov.quantidade ?? 0);
+                }
+                // 3) fallback: procurar o nome/código na observação (case-insensitive)
+                if (mov.observacao && mov.observacao.toLowerCase().includes(nomeEqLower)) {
+                    return acc + (mov.quantidade ?? 0);
+                }
+                return acc;
             }, 0);
         });
 

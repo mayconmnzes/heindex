@@ -6,13 +6,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PecaReposicaoRepository extends JpaRepository<PecaReposicao, Long> {
 
-    // ✅ CORREÇÃO: Query ajustada para o novo nome da relação (modelosEquipamentos)
-    @Query("SELECT DISTINCT p FROM PecaReposicao p " +
-           "LEFT JOIN FETCH p.modelosEquipamentos m " +
-           "LEFT JOIN FETCH m.area")
-    List<PecaReposicao> findAllWithDetails();
+    Optional<PecaReposicao> findByCodigoControleIgnoreCase(String codigoControle);
+
+    Optional<PecaReposicao> findByCodigoRequisicaoIgnoreCase(String codigoRequisicao);
+
+    List<PecaReposicao> findByNomeContainingIgnoreCase(String nome);
+
+    @Query("select p.codigoControle from PecaReposicao p where p.codigoControle is not null and p.codigoControle like ?1")
+    List<String> findCodigoControleLike(String pattern);
 }

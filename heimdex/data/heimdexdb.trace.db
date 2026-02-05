@@ -1,0 +1,25 @@
+2026-02-05 11:26:18.252333-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao ORDER BY id DESC LIMIT 50"; expected "EXPLAIN, EXECUTE"; SQL statement:
+ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao ORDER BY id DESC LIMIT 50 [42001-224]
+2026-02-05 11:26:28.531290-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao"; expected "EXPLAIN, EXECUTE"; SQL statement:
+ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao [42001-224]
+2026-02-05 11:26:29.051062-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao"; expected "EXPLAIN, EXECUTE"; SQL statement:
+ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao [42001-224]
+2026-02-05 11:26:30.006765-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao"; expected "EXPLAIN, EXECUTE"; SQL statement:
+ELECT id, nome, codigo_controle, codigo_requisicao, estoque_atual, foto_url FROM pecas_reposicao [42001-224]
+2026-02-05 11:26:33.848529-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]ACTION_ORIENTATION"; expected "ALTER, ANALYZE"; SQL statement:
+ACTION_ORIENTATION [42001-224]
+2026-02-05 11:45:55.518363-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]curl -v -X POST http://localhost:10000/api/pecas\000d\000a-H ""Content-Type: application/json""\000d\000a-d '{""nome"":""teste-curl"",""codigoRequisicao"":""99999999"",""estoqueAtual"":1}'"; expected "COMMIT, CREATE, CALL, CHECKPOINT, COMMENT"; SQL statement:
+curl -v -X POST http://localhost:10000/api/pecas
+-H "Content-Type: application/json"
+-d '{"nome":"teste-curl","codigoRequisicao":"99999999","estoqueAtual":1}' [42001-224]
+2026-02-05 11:45:56.561075-03:00 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "[*]curl -v -X POST http://localhost:10000/api/pecas\000d\000a-H ""Content-Type: application/json""\000d\000a-d '{""nome"":""teste-curl"",""codigoRequisicao"":""99999999"",""estoqueAtual"":1}'"; expected "COMMIT, CREATE, CALL, CHECKPOINT, COMMENT"; SQL statement:
+curl -v -X POST http://localhost:10000/api/pecas
+-H "Content-Type: application/json"
+-d '{"nome":"teste-curl","codigoRequisicao":"99999999","estoqueAtual":1}' [42001-224]

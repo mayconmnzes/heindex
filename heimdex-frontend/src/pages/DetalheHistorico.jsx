@@ -23,7 +23,7 @@ function DetalheHistorico({ equipamentoId }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // --- NOVO: consumos avulsos (movimentacoes de estoque vinculadas ao equipamento via observacao) ---
+    // consumos avulsos (movimentacoes de estoque vinculadas ao equipamento)
     const [consumosAvulsos, setConsumosAvulsos] = useState([]);
 
     useEffect(() => {
@@ -40,18 +40,13 @@ function DetalheHistorico({ equipamentoId }) {
                 const histOsRes = await axios.get(`${OS_API}?equipamentoId=${equipamentoId}`);
                 setHistoricoOs(histOsRes.data || []);
 
-                // --- novo: buscar consumos avulsos pelo nome do equipamento ---
-                // usamos o endpoint que busca movimentações cujo campo observacao contém o nome do equipamento
-                if (equipamento && equipamento.nome) {
+                // buscar consumos avulsos PELO ID do equipamento (endpoint robusto)
+                if (equipamento && equipamento.id) {
                     try {
-                        const res = await axios.get(`${ESTOQUE_API}/historico-equipamento`, {
-                            params: { nome: equipamento.nome }
-                        });
-                        // res.data é array de MovimentacaoEstoqueDTO (id, pecaId, quantidade, tipoMovimentacao, dataMovimentacao, nomePeca, nomeEquipamento, loginUsuario...)
+                        const res = await axios.get(`${ESTOQUE_API}/historico-equipamento/${equipamento.id}`);
                         setConsumosAvulsos(Array.isArray(res.data) ? res.data : []);
                     } catch (err) {
-                        // não bloqueia a visualização de histórico de OS — apenas loga
-                        console.error('Erro ao buscar consumos avulsos:', err);
+                        console.error('Erro ao buscar consumos avulsos por id:', err);
                         setConsumosAvulsos([]);
                     }
                 } else {
@@ -84,7 +79,7 @@ function DetalheHistorico({ equipamentoId }) {
                 <p><strong>Frequência:</strong> {equipamentoInfo.frequenciaPreventiva || 'N/A'}</p>
             </div>
 
-            {/* Seção: Consumo Avulso de Peças (novo) */}
+            {/* Seção: Consumo Avulso de Peças */}
             <section style={{ marginBottom: 24 }}>
                 <h2>Consumo Avulso de Peças</h2>
                 {consumosAvulsos.length === 0 ? (
@@ -105,7 +100,7 @@ function DetalheHistorico({ equipamentoId }) {
                             <tbody>
                                 {consumosAvulsos.map(mov => (
                                     <tr key={mov.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
-                                        <td style={{ padding: '8px 6px' }}>{mov.dataMovimentacao ? new Date(mov.dataMovimentacao).toLocaleString('pt-BR') : '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{formatDateTime(mov.dataMovimentacao)}</td>
                                         <td style={{ padding: '8px 6px' }}>{mov.nomePeca || '—'}</td>
                                         <td style={{ padding: '8px 6px' }}>{mov.quantidade ?? '—'}</td>
                                         <td style={{ padding: '8px 6px' }}>{mov.tipoMovimentacao || '—'}</td>

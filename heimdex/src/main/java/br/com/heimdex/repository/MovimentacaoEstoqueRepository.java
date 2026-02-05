@@ -9,19 +9,17 @@ import java.util.List;
 public interface MovimentacaoEstoqueRepository extends JpaRepository<MovimentacaoEstoque, Long> {
 
     List<MovimentacaoEstoque> findByObservacaoContainingOrderByDataMovimentacaoDesc(String observacao);
-    
-    // ✅ Adicione este método exato para o histórico funcionar:
+
     List<MovimentacaoEstoque> findByPecaIdOrderByDataMovimentacaoDesc(Long pecaId);
-    
-    // Pode manter o antigo se outras telas usarem:
-    List<MovimentacaoEstoque> findByPecaIdOrderByDataHoraDesc(Long pecaId);
 
     List<MovimentacaoEstoque> findAllByOrderByDataMovimentacaoDesc();
 
-    List<MovimentacaoEstoque> findByDataMovimentacaoBetweenOrderByDataMovimentacaoDesc(
-    java.time.LocalDateTime inicio, 
-    java.time.LocalDateTime fim);
+    List<MovimentacaoEstoque> findByDataMovimentacaoBetweenOrderByDataMovimentacaoDesc(java.time.LocalDateTime inicio, java.time.LocalDateTime fim);
 
-    // NOVO: busca por equipamento id (retorna movimentos vinculados ao equipamento)
     List<MovimentacaoEstoque> findByEquipamentoIdOrderByDataMovimentacaoDesc(Long equipamentoId);
+
+    List<MovimentacaoEstoque> findByTipoMovimentacaoOrderByDataMovimentacaoDesc(String tipoMovimentacao);
+
+    // NOVO: busca por vários tipos (ex: SAIDA + SAIDA_AVULSA)
+    List<MovimentacaoEstoque> findByTipoMovimentacaoInOrderByDataMovimentacaoDesc(List<String> tipos);
 }
