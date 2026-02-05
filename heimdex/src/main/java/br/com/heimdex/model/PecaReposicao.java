@@ -37,15 +37,14 @@ public class PecaReposicao {
 
     private String aplicacao;
 
+    // URL do QR gerado (não sobrescreve foto_url)
+    @Column(name = "qr_url")
+    private String qrUrl;
+
     // IDs vindos do front (transiente)
     @Transient
     @JsonProperty("modelosIds")
     private List<Long> modelosIds;
-
-    @Column(name = "qr_url")
-    private String qrUrl;
-    public String getQrUrl() { return qrUrl; }
-    public void setQrUrl(String qrUrl) { this.qrUrl = qrUrl; }
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -62,7 +61,7 @@ public class PecaReposicao {
     public void setId(Long id) { this.id = id; }
 
     public String getNome() { return nome; }
-    public void setNome(String n) { this.nome = n; }
+    public void setNome(String nome) { this.nome = nome; }
 
     // JSON mapping: aceita "codigoControle" e "codigo_controle"
     @JsonProperty("codigoControle")
@@ -71,36 +70,38 @@ public class PecaReposicao {
     @JsonProperty("codigoControle")
     public void setCodigoControle(String codigoControle) { this.codigoControle = codigoControle; }
 
-    // também aceita underscored name no JSON
     @JsonProperty("codigo_controle")
     public void setCodigoControleUnderscore(String codigo) { this.codigoControle = codigo; }
 
     public Integer getEstoqueAtual() { return estoqueAtual; }
-    public void setEstoqueAtual(Integer e) { this.estoqueAtual = e; }
+    public void setEstoqueAtual(Integer estoqueAtual) { this.estoqueAtual = estoqueAtual; }
 
     public Integer getEstoqueMinimo() { return estoqueMinimo; }
-    public void setEstoqueMinimo(Integer e) { this.estoqueMinimo = e; }
+    public void setEstoqueMinimo(Integer estoqueMinimo) { this.estoqueMinimo = estoqueMinimo; }
 
     public String getFotoUrl() { return fotoUrl; }
-    public void setFotoUrl(String f) { this.fotoUrl = f; }
+    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
 
     public String getLocalizacaoPrateleira() { return localizacaoPrateleira; }
-    public void setLocalizacaoPrateleira(String l) { this.localizacaoPrateleira = l; }
+    public void setLocalizacaoPrateleira(String localizacaoPrateleira) { this.localizacaoPrateleira = localizacaoPrateleira; }
 
     public String getCodigoRequisicao() { return codigoRequisicao; }
-    public void setCodigoRequisicao(String c) { this.codigoRequisicao = c; }
+    public void setCodigoRequisicao(String codigoRequisicao) { this.codigoRequisicao = codigoRequisicao; }
 
     public String getDescricaoTecnica() { return descricaoTecnica; }
-    public void setDescricaoTecnica(String d) { this.descricaoTecnica = d; }
+    public void setDescricaoTecnica(String descricaoTecnica) { this.descricaoTecnica = descricaoTecnica; }
 
     public String getAplicacao() { return aplicacao; }
-    public void setAplicacao(String a) { this.aplicacao = a; }
+    public void setAplicacao(String aplicacao) { this.aplicacao = aplicacao; }
+
+    public String getQrUrl() { return qrUrl; }
+    public void setQrUrl(String qrUrl) { this.qrUrl = qrUrl; }
 
     public List<ModeloEquipamento> getModelosEquipamentos() { return modelosEquipamentos; }
-    public void setModelosEquipamentos(List<ModeloEquipamento> m) { this.modelosEquipamentos = m; }
+    public void setModelosEquipamentos(List<ModeloEquipamento> modelosEquipamentos) { this.modelosEquipamentos = modelosEquipamentos; }
 
     public List<Long> getModelosIds() { return modelosIds; }
-    public void setModelosIds(List<Long> ids) { this.modelosIds = ids; }
+    public void setModelosIds(List<Long> modelosIds) { this.modelosIds = modelosIds; }
 
     // compatibilidade com service
     public void setModeloEquipamento(ModeloEquipamento m) {
@@ -127,6 +128,8 @@ public class PecaReposicao {
                 ", codigoRequisicao='" + codigoRequisicao + '\'' +
                 ", estoqueAtual=" + estoqueAtual +
                 ", estoqueMinimo=" + estoqueMinimo +
+                ", fotoUrl='" + fotoUrl + '\'' +
+                ", qrUrl='" + qrUrl + '\'' +
                 '}';
     }
 }

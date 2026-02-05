@@ -3,6 +3,8 @@ package br.com.heimdex.controller;
 import br.com.heimdex.model.PecaReposicao;
 import br.com.heimdex.repository.PecaReposicaoRepository;
 import br.com.heimdex.service.PecaService;
+import br.com.heimdex.service.QrCodeService;
+import com.google.zxing.WriterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +28,9 @@ public class PecaController {
 
     @Autowired
     private PecaService pecaService;
+
+    @Autowired
+    private QrCodeService qrService;
 
     @GetMapping("/lookup")
     public ResponseEntity<?> lookupPeca(@RequestParam("code") String code) {
@@ -69,8 +75,28 @@ public class PecaController {
         } else {
             log.info("CodigoControle recebido: {}", pecaDto.getCodigoControle());
         }
+
         PecaReposicao salvo = pecaReposicaoRepository.save(pecaDto);
         log.info("Peca salva id={}, codigo_controle={}", salvo.getId(), salvo.getCodigoControle());
+
+        // Gera e salva o QR em qr_url (não sobrescreve foto_url)
+        try {
+            String codigoParaQr = (salvo.getCodigoControle() != null && !salvo.getCodigoControle().isBlank())
+                    ? salvo.getCodigoControle()
+                    : salvo.getCodigoRequisicao(); // fallback apenas se codigo_controle inexistente
+            if (codigoParaQr != null && !codigoParaQr.isBlank()) {
+                String filename = codigoParaQr + ".png";
+                String url = qrService.generatePngForText(codigoParaQr, filename);
+                salvo.setQrUrl(url);
+                pecaReposicaoRepository.save(salvo);
+                log.info("QR gerado e salvo em qr_url para id={} url={}", salvo.getId(), url);
+            } else {
+                log.warn("Peça id={} sem código disponível para gerar QR", salvo.getId());
+            }
+        } catch (IOException | WriterException e) {
+            log.error("Erro ao gerar QR para peca id={}: {}", salvo.getId(), e.getMessage(), e);
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 }
