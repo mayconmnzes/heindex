@@ -85,26 +85,29 @@ public class OrdemServicoController {
     }
 
     @PostMapping("/{id}/validar")
-    public ResponseEntity<String> validar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
+    public ResponseEntity<OrdemServicoResponseDTO> validar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
         try {
             service.validarOrdemServico(id, dto.getLiderId(), dto.getObservacoesLider());
-            return ResponseEntity.ok("OS validada");
+            // Retorna a OS atualizada para o frontend (contendo dataValidacao, fotosEvidencia, etc.)
+            OrdemServicoResponseDTO updated = service.buscarPorId(id);
+            return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Erro ao validar OS");
+            return ResponseEntity.status(500).build();
         }
     }
 
     @PostMapping("/{id}/reprovar")
-    public ResponseEntity<String> reprovar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
+    public ResponseEntity<OrdemServicoResponseDTO> reprovar(@PathVariable Long id, @RequestBody LiderActionRequestDTO dto) {
         try {
             service.reprovarOrdemServico(id, dto.getLiderId(), dto.getObservacoesLider());
-            return ResponseEntity.ok("OS reprovada");
+            OrdemServicoResponseDTO updated = service.buscarPorId(id);
+            return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Erro ao reprovar OS");
+            return ResponseEntity.status(500).build();
         }
     }
 

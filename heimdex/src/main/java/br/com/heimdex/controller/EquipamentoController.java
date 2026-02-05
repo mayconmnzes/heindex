@@ -17,8 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,7 +31,6 @@ public class EquipamentoController {
     @Autowired private ModeloEquipamentoRepository modeloRepository;
     @Autowired private OrdemServicoService ordemServicoService;
 
-    // Lista todos (com detalhes) - já existente
     @GetMapping
     public List<EquipamentoResponseDTO> getAllEquipamentos() {
         return equipamentoRepository.findAllWithDetails().stream()
@@ -41,7 +38,6 @@ public class EquipamentoController {
                 .collect(Collectors.toList());
     }
 
-    // Novo endpoint: obter equipamento por id (inclui dataUltimaPreventiva etc.)
     @GetMapping("/{id}")
     public ResponseEntity<EquipamentoResponseDTO> getEquipamentoById(@PathVariable Long id) {
         return equipamentoRepository.findById(id)
@@ -76,7 +72,6 @@ public class EquipamentoController {
                     equipamentoExistente.setLinha(linha);
                     equipamentoExistente.setModelo(modelo);
 
-                    // Corrigido para usar setChecklist (igual ao Model)
                     if (dto.getChecklistId() != null) {
                         Checklist check = checklistRepository.findById(dto.getChecklistId()).orElse(null);
                         equipamentoExistente.setChecklist(check);
@@ -90,7 +85,7 @@ public class EquipamentoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Convert e convertToResponse (mantidos/ajustados)
+    // Conversões entre Entity <-> DTO
     private Equipamento convertToEntity(EquipamentoRequestDTO dto) {
         Equipamento e = new Equipamento();
         e.setNome(dto.getNome());
@@ -120,12 +115,34 @@ public class EquipamentoController {
         dto.setNome(e.getNome());
         dto.setCodigo(e.getCodigo());
         dto.setCriticidade(e.getCriticidade());
+        dto.setModeloId(e.getModelo() != null ? e.getModelo().getId() : null);
+        dto.setNomeModelo(e.getModelo() != null ? e.getModelo().getNome() : null);
+        dto.setFabricante(e.getModelo() != null ? e.getModelo().getFabricante() : null);
         dto.setFrequenciaPreventiva(e.getFrequenciaPreventiva());
         dto.setDataUltimaPreventiva(e.getDataUltimaPreventiva());
-        dto.setLinhaId(e.getLinha() != null ? e.getLinha().getId() : null);
-        dto.setModeloId(e.getModelo() != null ? e.getModelo().getId() : null);
+
+        // Decide statusPreventiva: se houver uma PREVENTIVA AGENDADA ou SUGESTAO para este equipamento,
+        // marca como AGENDADA para que o frontend trate como "programado".
+        try {
+            boolean hasAgendadaOrSugestao = ordemServicoRepository.existsByEquipamentoIdAndTipoManutencaoAndStatusIn(
+                    e.getId(),
+                    "PREVENTIVA",
+                    List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA)
+            );
+            if (hasAgendadaOrSugestao) {
+                dto.setStatusPreventiva("AGENDADA");
+            } else {
+                dto.setStatusPreventiva(null);
+            }
+        } catch (Throwable ignored) {
+            dto.setStatusPreventiva(null);
+        }
+
+        dto.setNomeLinha(e.getLinha() != null ? e.getLinha().getNome() : null);
+        dto.setNomeArea(e.getLinha() != null && e.getLinha().getArea() != null ? e.getLinha().getArea().getNome() : null);
+        dto.setChecklistNome(e.getChecklist() != null ? e.getChecklist().getNome() : null);
         dto.setChecklistId(e.getChecklist() != null ? e.getChecklist().getId() : null);
-        // outros campos conforme seu DTO
+
         return dto;
     }
 }

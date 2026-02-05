@@ -10,6 +10,7 @@ const FOTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/fotos/upload`;
 const ESTOQUE_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/estoque`;
 const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
 const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/pecas`;
+const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
 
 const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
 
@@ -204,10 +205,22 @@ function ExecucaoOS() {
         const data = { liderId: user.id, observacoesLider };
 
         try {
-            await axios.post(url, data);
+            // Faz a requisição e recebe a OS atualizada no body
+            const res = await axios.post(url, data);
             alert(`OS ${action === 'validar' ? 'APROVADA' : 'REPROVADA'} com sucesso!`);
-            navigate('/'); // Volta ao dashboard após validar/reprovar
-        } catch (error) { alert(`Falha ao ${action}: ${error.response?.data?.message || error.response?.data || 'Erro de rede'}`); }
+
+            // 1) Recarrega detalhes da OS atual (útil para a tela atual)
+            await fetchOsDetails();
+
+            // 2) Opcional: atualiza equipamento/planejamento — força recarregar a rota de planejamento
+            // Se você quiser voltar para Dashboard: navigate('/');
+            // Para garantir que o Planejamento mostre dados atualizados, navegue e force reload:
+            navigate('/planejamento');
+            // força reload completo para garantir dados atualizados em todas as páginas:
+            window.location.reload();
+        } catch (error) {
+            alert(`Falha ao ${action}: ${error.response?.data?.message || error.response?.data || 'Erro de rede'}`);
+        }
     };
 
     const handleFileChange = (e) => { setSelectedFile(e.target.files[0]); };
