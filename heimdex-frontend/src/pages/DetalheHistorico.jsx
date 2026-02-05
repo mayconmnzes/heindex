@@ -1,188 +1,145 @@
-// Código Novo - src/pages/DetalheHistorico.jsx
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-// --- ALTERAÇÃO 1: Importa useNavigate ---
-import { useParams, Link, useNavigate } from 'react-router-dom';
 
-// URLs da API (Corrigidas com a sintaxe de Template String)
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`;
-const EQUIPAMENTOS_API_URL = `${API_BASE_URL}/equipamentos`;
+const EQUIPAMENTOS_API = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
+const OS_API = `${import.meta.env.VITE_API_BASE_URL}/api/ordens-servico`;
+const ESTOQUE_API = `${import.meta.env.VITE_API_BASE_URL}/api/estoque`;
 
-const OS_API_URL = `${API_BASE_URL}/ordens-servico`;
-
-// BACKEND_BASE_URL para imagens, se mostrar fotos da OS
-// (Corrigido para usar a variável de ambiente)
-const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
-
-// Função auxiliar para formatar datas
-const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return 'N/A';
+function formatDateTime(d) {
+    if (!d) return '—';
     try {
-        return new Date(dateTimeString).toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
-    } catch (e) {
-        return 'Data inválida';
+        const dt = new Date(d);
+        return dt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    } catch {
+        return String(d);
     }
-};
+}
 
-// Função auxiliar para obter classe CSS do status da OS
-const getStatusClass = (status) => {
-    if (!status) return '';
-    return `status-${status.toLowerCase().replace(/_/g, '-')}`;
-};
-
-
-function DetalheHistorico() {
-    // Pega o ID do equipamento da URL
-    const { equipamentoId } = useParams();
-    
-    // --- ALTERAÇÃO 2: Inicializa o navigate ---
+function DetalheHistorico({ equipamentoId }) {
     const navigate = useNavigate();
-
-    // Estados
-    const [equipamentoInfo, setEquipamentoInfo] = useState(null); // Para mostrar nome, etc.
+    const [equipamentoInfo, setEquipamentoInfo] = useState(null);
     const [historicoOs, setHistoricoOs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Busca os dados do histórico e as infos do equipamento
-    useEffect(() => {
-        if (!equipamentoId) {
-            setError("ID do equipamento não encontrado na URL.");
-            setLoading(false);
-            return;
-        }
+    // --- NOVO: consumos avulsos (movimentacoes de estoque vinculadas ao equipamento via observacao) ---
+    const [consumosAvulsos, setConsumosAvulsos] = useState([]);
 
-        const fetchHistorico = async () => {
+    useEffect(() => {
+        const fetchDados = async () => {
             setLoading(true);
             setError(null);
             try {
-                // Busca o histórico de OSs
-                const historicoRes = await axios.get(`${EQUIPAMENTOS_API_URL}/${equipamentoId}/historico`);
-                // Garante que a ordem seja da mais recente para a mais antiga
-                const sortedHistorico = (Array.isArray(historicoRes.data) ? historicoRes.data : [])
-                                        .sort((a, b) => new Date(b.dataFimExecucao || b.dataAgendamento) - new Date(a.dataFimExecucao || a.dataAgendamento));
-                setHistoricoOs(sortedHistorico);
+                // equipamento info
+                const equipRes = await axios.get(`${EQUIPAMENTOS_API}/${equipamentoId}`);
+                const equipamento = equipRes.data;
+                setEquipamentoInfo(equipamento);
 
-                // Opcional: Busca as informações do equipamento para o cabeçalho
-                try {
-                     const equipRes = await axios.get(`${EQUIPAMENTOS_API_URL}/${equipamentoId}`);
-                     setEquipamentoInfo(equipRes.data);
-                } catch (equipError) {
-                    console.warn("Não foi possível buscar detalhes do equipamento:", equipError);
-                    // Continua mesmo sem os detalhes, usará dados da primeira OS se houver
-                    if(historicoRes.data && historicoRes.data.length > 0) {
-                        setEquipamentoInfo({
-                            nome: historicoRes.data[0].nomeEquipamento,
-                            codigo: historicoRes.data[0].codigoEquipamento,
-                        })
+                // historico de OS para o equipamento
+                const histOsRes = await axios.get(`${OS_API}?equipamentoId=${equipamentoId}`);
+                setHistoricoOs(histOsRes.data || []);
+
+                // --- novo: buscar consumos avulsos pelo nome do equipamento ---
+                // usamos o endpoint que busca movimentações cujo campo observacao contém o nome do equipamento
+                if (equipamento && equipamento.nome) {
+                    try {
+                        const res = await axios.get(`${ESTOQUE_API}/historico-equipamento`, {
+                            params: { nome: equipamento.nome }
+                        });
+                        // res.data é array de MovimentacaoEstoqueDTO (id, pecaId, quantidade, tipoMovimentacao, dataMovimentacao, nomePeca, nomeEquipamento, loginUsuario...)
+                        setConsumosAvulsos(Array.isArray(res.data) ? res.data : []);
+                    } catch (err) {
+                        // não bloqueia a visualização de histórico de OS — apenas loga
+                        console.error('Erro ao buscar consumos avulsos:', err);
+                        setConsumosAvulsos([]);
                     }
+                } else {
+                    setConsumosAvulsos([]);
                 }
-
             } catch (err) {
-                console.error("Erro ao buscar histórico do equipamento:", err);
-                setError(`Falha ao carregar histórico: ${err.response?.data?.message || err.message || 'Erro desconhecido'}`);
-                setHistoricoOs([]);
-                setEquipamentoInfo(null);
+                console.error(err);
+                setError('Falha ao carregar histórico.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchHistorico();
-    }, [equipamentoId]); // Re-executa se o ID mudar
+        if (equipamentoId) fetchDados();
+    }, [equipamentoId]);
 
-    
-    // --- ALTERAÇÃO 3: Função para renderizar o Card Clicável ---
-    const renderOsCard = (os) => {
-        const statusClass = getStatusClass(os.status);
-        let borderColor = '#ddd';
-        if (os.status === 'CONCLUIDA') borderColor = '#6c757d'; // Cinza
-        else if (os.status === 'PENDENTE_DE_CORRECAO') borderColor = '#dc3545'; // Vermelho
-        else if (os.status === 'AGUARDANDO_VALIDACAO') borderColor = '#fd7e14'; // Laranja
-        else if (os.status === 'EM_EXECUCAO') borderColor = '#ffc107'; // Amarelo
-        else if (os.status === 'AGENDADA') borderColor = '#007bff'; // Azul
-
-        const cardStyle = {
-            border: `1px solid ${borderColor}`,
-            borderLeft: `5px solid ${borderColor}`,
-            padding: '12px',
-            borderRadius: '6px',
-            marginBottom: '10px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            cursor: 'pointer', // Faz parecer clicável
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-        };
-
-        return (
-            <div 
-                key={os.id} 
-                className="os-card-historico" // Use uma classe se quiser estilizar mais no CSS
-                style={cardStyle} 
-                onClick={() => navigate(`/ordem-servico/${os.id}`)} // Ação de clique
-                title="Clique para ver os detalhes completos"
-            >
-                <div>
-                    <h4 style={{ margin: 0 }}>
-                        {/* Mostra o tipo (Preventiva, Corretiva...) */}
-                        OS #{os.id} - {os.tipoManutencao || 'Manutenção'}
-                    </h4>
-                    <p style={{ fontSize: '0.9rem', color: '#333', margin: '4px 0' }}>
-                        <strong>Técnico:</strong> {os.nomeTecnico || 'N/A'}
-                    </p>
-                    <p style={{ fontSize: '0.85rem', color: '#666', margin: '4px 0' }}>
-                        <strong>Data de Conclusão:</strong> {formatDateTime(os.dataFimExecucao)}
-                    </p>
-                </div>
-                <span className={`status ${statusClass}`}>
-                    {os.status ? os.status.replace(/_/g, ' ') : 'N/A'}
-                </span>
-            </div>
-        );
-    };
-
+    if (loading) return <div className="main-content">Carregando...</div>;
+    if (error) return <div className="main-content">{error} <Link to="/">Voltar</Link></div>;
+    if (!equipamentoInfo) return <div className="main-content">Equipamento não encontrado. <Link to="/">Voltar</Link></div>;
 
     return (
         <div className="main-content">
-            {/* Link para voltar */}
-            <Link to="/historico" style={{ display: 'inline-block', marginBottom: '1rem' }}>
-                &larr; Voltar para a lista
-            </Link>
+            <Link to="/historico" style={{ display: 'inline-block', marginBottom: '1rem' }}>&larr; Voltar</Link>
+            <h1>Histórico de Manutenção - {equipamentoInfo.nome} {equipamentoInfo.codigo ? `(${equipamentoInfo.codigo})` : ''}</h1>
 
-            {/* Cabeçalho com informações do equipamento */}
-            {equipamentoInfo && (
-                <div style={{ padding: '15px', backgroundColor: '#e9ecef', borderRadius: '8px', marginBottom: '20px' }}>
-                    <h2>Histórico de Manutenção</h2>
-                    <h3 style={{ marginTop: '5px' }}>
-                        Equipamento: {equipamentoInfo.nome || 'Carregando...'}
-                        {equipamentoInfo.codigo && ` (${equipamentoInfo.codigo})`}
-                    </h3>
-                     {/* Adicione mais detalhes se buscar o EquipamentoResponseDTO completo */}
-                     {equipamentoInfo.nomeModelo && <p style={{ margin: '2px 0', fontSize: '0.9rem' }}><strong>Modelo:</strong> {equipamentoInfo.nomeModelo} (Fabr: {equipamentoInfo.fabricante || 'N/A'})</p> }
-                     {equipamentoInfo.nomeLinha && <p style={{ margin: '2px 0', fontSize: '0.9rem' }}><strong>Local:</strong> {equipamentoInfo.nomeArea || 'N/A'} / {equipamentoInfo.nomeLinha}</p>}
-                </div>
-            )}
-             {!equipamentoInfo && !loading && !error && <h2>Histórico de Manutenção</h2>}
+            {/* Seção: Informações do equipamento */}
+            <div style={{ padding: '12px', background: '#f8f9fa', borderRadius: 6, marginBottom: 16 }}>
+                <p><strong>Modelo:</strong> {equipamentoInfo.nomeModelo || 'N/A'} {equipamentoInfo.fabricante ? `(Fabr: ${equipamentoInfo.fabricante})` : ''}</p>
+                <p><strong>Última Preventiva:</strong> {equipamentoInfo.dataUltimaPreventiva ? new Date(equipamentoInfo.dataUltimaPreventiva).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                <p><strong>Frequência:</strong> {equipamentoInfo.frequenciaPreventiva || 'N/A'}</p>
+            </div>
 
+            {/* Seção: Consumo Avulso de Peças (novo) */}
+            <section style={{ marginBottom: 24 }}>
+                <h2>Consumo Avulso de Peças</h2>
+                {consumosAvulsos.length === 0 ? (
+                    <p style={{ color: '#6c757d' }}>Nenhum consumo avulso encontrado para este equipamento.</p>
+                ) : (
+                    <div className="table-container" style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
+                                    <th>Data</th>
+                                    <th>Peça</th>
+                                    <th>Quantidade</th>
+                                    <th>Tipo</th>
+                                    <th>Usuário</th>
+                                    <th>Observação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {consumosAvulsos.map(mov => (
+                                    <tr key={mov.id} style={{ borderBottom: '1px solid #f1f1f1' }}>
+                                        <td style={{ padding: '8px 6px' }}>{mov.dataMovimentacao ? new Date(mov.dataMovimentacao).toLocaleString('pt-BR') : '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{mov.nomePeca || '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{mov.quantidade ?? '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{mov.tipoMovimentacao || '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{mov.loginUsuario || '—'}</td>
+                                        <td style={{ padding: '8px 6px' }}>{mov.observacao || (mov.nomeEquipamento ? `Equipamento: ${mov.nomeEquipamento}` : '—')}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
 
-            {loading && <p>Carregando histórico...</p>}
-            {error && <p style={{ color: 'red' }}>{error}</p>}
-
-            {/* --- ALTERAÇÃO 4: A lista agora usa a nova função de renderização --- */}
-            {!loading && !error && (
-                <div>
-                    {historicoOs.length === 0 ? (
-                        <p>Nenhum registro de Ordem de Serviço encontrado para este equipamento.</p>
-                    ) : (
-                        // Mapeia e renderiza os cards clicáveis
-                        historicoOs.map(os => renderOsCard(os))
-                    )}
-                </div>
-            )}
+            {/* Seção: Histórico de Ordens de Serviço */}
+            <section>
+                <h2>Ordens de Serviço (Histórico)</h2>
+                {historicoOs.length === 0 ? (
+                    <p style={{ color: '#6c757d' }}>Nenhuma Ordem de Serviço encontrada para este equipamento.</p>
+                ) : (
+                    <div>
+                        {historicoOs.map(os => (
+                            <div key={os.id} style={{ border: '1px solid #e9ecef', padding: 12, borderRadius: 6, marginBottom: 8 }}>
+                                <h4 style={{ margin: 0 }}>OS #{os.id} — {os.tipoManutencao}</h4>
+                                <p style={{ margin: '6px 0' }}><strong>Data Agendada:</strong> {os.dataAgendamento ? new Date(os.dataAgendamento).toLocaleString('pt-BR') : 'N/A'}</p>
+                                <p style={{ margin: '6px 0' }}><strong>Status:</strong> {os.status}</p>
+                                <p style={{ margin: '6px 0' }}><strong>Início:</strong> {os.dataInicioExecucao ? new Date(os.dataInicioExecucao).toLocaleString('pt-BR') : '—'} — <strong>Fim:</strong> {os.dataFimExecucao ? new Date(os.dataFimExecucao).toLocaleString('pt-BR') : '—'}</p>
+                                <div style={{ marginTop: 8 }}>
+                                    <Link to={`/ordem-servico/${os.id}`} style={{ color: '#007bff' }}>Ver detalhes</Link>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
         </div>
     );
 }

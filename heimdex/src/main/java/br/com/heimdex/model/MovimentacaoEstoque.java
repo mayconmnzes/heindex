@@ -20,9 +20,13 @@ public class MovimentacaoEstoque {
     @ManyToOne 
     private PecaReposicao peca;
     
-    
     @ManyToOne 
     private Equipamento equipamento;
+    
+    // Relação opcional com OrdemServico (quando a movimentação foi gerada por uma OS)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordem_servico_id")
+    private OrdemServico ordemServico;
     
     @ManyToOne(fetch = FetchType.EAGER) // ✅ Adicione isso aqui
     @JoinColumn(name = "usuario_id")
@@ -54,15 +58,14 @@ public class MovimentacaoEstoque {
     public void setPeca(PecaReposicao p) { this.peca = p; }
 
     public Equipamento getEquipamento() { return equipamento; }
-    
-    // ✅ ADICIONADO: Necessário para o PecaReposicaoController
     public void setEquipamento(Equipamento equipamento) { 
         this.equipamento = equipamento; 
     }
 
+    public OrdemServico getOrdemServico() { return ordemServico; }
+    public void setOrdemServico(OrdemServico ordemServico) { this.ordemServico = ordemServico; }
+
     public Usuario getUsuario() { return usuario; }
-    
-    // ✅ ADICIONADO: Necessário para registrar quem fez a movimentação
     public void setUsuario(Usuario usuario) { 
         this.usuario = usuario; 
     }

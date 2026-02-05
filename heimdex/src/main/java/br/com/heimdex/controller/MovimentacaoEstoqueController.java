@@ -12,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/estoque")
@@ -22,6 +23,7 @@ public class MovimentacaoEstoqueController {
     @Autowired private OrdemServicoRepository osRepository;
     @Autowired private PecaBaixadaOSRepository pecaBaixadaOSRepository;
     @Autowired private EquipamentoRepository equipamentoRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
 
     /**
      * Realiza a baixa de uma peça sem OS, vinculando-a a um equipamento específico.
@@ -52,17 +54,36 @@ public class MovimentacaoEstoqueController {
         movimento.setTipoMovimentacao("SAIDA_AVULSA");
         movimento.setDataMovimentacao(LocalDateTime.now());
         movimento.setObservacao("Uso corretivo/avulso no equipamento: " + equip.getNome());
+
+        // IMPORTANTE: vincula também o equipamento ao movimento (para buscas por equipamentoId)
+        movimento.setEquipamento(equip);
+
         movimentacaoEstoqueRepository.save(movimento);
 
         return ResponseEntity.ok("Baixa realizada com sucesso!");
     }
 
     /**
-     * Recupera todas as movimentações de estoque que mencionam o equipamento.
+     * Recupera todas as movimentações vinculadas ao equipamento pelo ID (mais robusto).
      */
-    @GetMapping("/historico-equipamento")
-    public List<MovimentacaoEstoque> getHistoricoPorEquipamento(@RequestParam String nome) {
-        return movimentacaoEstoqueRepository.findByObservacaoContainingOrderByDataMovimentacaoDesc(nome);
+    @GetMapping("/historico-equipamento/{equipamentoId}")
+    public List<MovimentacaoEstoqueDTO> getHistoricoPorEquipamentoId(@PathVariable Long equipamentoId) {
+        return movimentacaoEstoqueRepository.findByEquipamentoIdOrderByDataMovimentacaoDesc(equipamentoId)
+                .stream()
+                .map(mov -> {
+                    MovimentacaoEstoqueDTO dto = new MovimentacaoEstoqueDTO();
+                    dto.setId(mov.getId());
+                    dto.setPecaId(mov.getPeca() != null ? mov.getPeca().getId() : null);
+                    dto.setQuantidade(mov.getQuantidade());
+                    dto.setTipoMovimentacao(mov.getTipoMovimentacao());
+                    dto.setDataMovimentacao(mov.getDataMovimentacao());
+                    dto.setNomePeca(mov.getPeca() != null ? mov.getPeca().getNome() : "N/A");
+                    dto.setNomeEquipamento(mov.getEquipamento() != null ? mov.getEquipamento().getNome() : "Geral");
+                    dto.setLoginUsuario(mov.getUsuario() != null ? mov.getUsuario().getLogin() : "Sistema");
+                    dto.setObservacao(mov.getObservacao());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -90,6 +111,16 @@ public class MovimentacaoEstoqueController {
         movimento.setQuantidade(dto.getQuantidade());
         movimento.setTipoMovimentacao("SAIDA");
         movimento.setDataMovimentacao(LocalDateTime.now());
+
+        // vincula a OS e equipamento (se disponível) ao movimento
+        movimento.setOrdemServico(os);
+        if (os.getEquipamento() != null) {
+            movimento.setEquipamento(os.getEquipamento());
+        }
+
+        // opcional: Observação indicando qual OS gerou a saída
+        movimento.setObservacao("Baixa vinculada à OS #" + osId);
+
         MovimentacaoEstoque movimentoSalvo = movimentacaoEstoqueRepository.save(movimento);
 
         PecaBaixadaOS pecaConsumida = new PecaBaixadaOS();

@@ -1,5 +1,3 @@
-// Código Completo (versão ajustada: mantém todas as funcionalidades originais
-// e garante que o checklist seja exibido quando existir em os.checklist OU em os.resultados)
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -13,6 +11,37 @@ const PECAS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/pecas`;
 const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamentos`;
 
 const BACKEND_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+
+/**
+ * parseDateToLocal
+ * Interpreta strings retornadas do backend como datas LOCAIS.
+ * Suporta:
+ *  - "YYYY-MM-DD" (LocalDate) -> cria Date no timezone local (00:00 local)
+ *  - "YYYY-MM-DDTHH:mm" ou "YYYY-MM-DDTHH:mm:ss" (LocalDateTime sem timezone) -> interpreta como local
+ *  - fallback -> new Date(...)
+ */
+function parseDateToLocal(dateStr) {
+  if (!dateStr) return null;
+  if (typeof dateStr === 'object' && dateStr instanceof Date) return dateStr;
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+
+  // YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss (no timezone) -> treat as local
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(dateStr)) {
+    const [datePart, timePart] = dateStr.split('T');
+    const [y, m, d] = datePart.split('-').map(Number);
+    const [hh, mm, ss = '0'] = timePart.split(':');
+    return new Date(y, m - 1, d, Number(hh), Number(mm), Number(ss));
+  }
+
+  // Fallback (may contain timezone)
+  const parsed = new Date(dateStr);
+  return isNaN(parsed) ? null : parsed;
+}
 
 function ExecucaoOS() {
     const { osId } = useParams();
@@ -193,6 +222,7 @@ function ExecucaoOS() {
         } catch (error) { alert(`Falha ao finalizar: ${error.response?.data?.message || error.response?.data || 'Erro de rede'}`); }
     };
 
+    // CORREÇÃO: handleValidarReprovar atualizada para não forçar reload e manter botões visíveis.
     const handleValidarReprovar = async (action) => {
         if (!canValidate) return;
         const promptText = action === 'validar' ? 'Obs. para Aprovação (Opcional):' : 'Obs. para Reprovação (Obrigatório):';
@@ -205,19 +235,17 @@ function ExecucaoOS() {
         const data = { liderId: user.id, observacoesLider };
 
         try {
-            // Faz a requisição e recebe a OS atualizada no body
+            // Faz a requisição; controller retorna a OS atualizada (se implementado) ou 200
             const res = await axios.post(url, data);
+
             alert(`OS ${action === 'validar' ? 'APROVADA' : 'REPROVADA'} com sucesso!`);
 
-            // 1) Recarrega detalhes da OS atual (útil para a tela atual)
+            // Recarrega detalhes da OS atual (atualiza botão/estado na mesma tela)
             await fetchOsDetails();
 
-            // 2) Opcional: atualiza equipamento/planejamento — força recarregar a rota de planejamento
-            // Se você quiser voltar para Dashboard: navigate('/');
-            // Para garantir que o Planejamento mostre dados atualizados, navegue e force reload:
+            // Navega para Planejamento sem forçar reload completo (a página de Planejamento faz fetch ao montar)
+            // Se você não quiser navegar automaticamente, comente a linha abaixo.
             navigate('/planejamento');
-            // força reload completo para garantir dados atualizados em todas as páginas:
-            window.location.reload();
         } catch (error) {
             alert(`Falha ao ${action}: ${error.response?.data?.message || error.response?.data || 'Erro de rede'}`);
         }
@@ -283,6 +311,12 @@ function ExecucaoOS() {
     if (loading) return <div className="main-content">Carregando...</div>;
     if (!os) return <div className="main-content">Ordem de Serviço não encontrada. <Link to="/">Voltar</Link></div>;
 
+    // formata datas usando parseDateToLocal para evitar shift de dia por timezone
+    const dtAgendamento = parseDateToLocal(os.dataAgendamento);
+    const dtInicio = parseDateToLocal(os.dataInicioExecucao);
+    const dtFim = parseDateToLocal(os.dataFimExecucao);
+    const dtValidacao = parseDateToLocal(os.dataValidacao);
+
     return (
         <div className="main-content">
             <h1>{isSuggestionMode ? 'Analisar Sugestão' : 'Detalhes'} da OS #{os.id}</h1>
@@ -311,10 +345,10 @@ function ExecucaoOS() {
                     <h3>Detalhes da OS - Status: <span className={`status status-${os.status.toLowerCase().replace(/_/g, '-')}`}>{os.status.replace(/_/g, ' ')}</span></h3>
                      <p><strong>Equipamento:</strong> {os.nomeEquipamento} ({os.codigoEquipamento})</p>
                     <p><strong>Técnico:</strong> {os.nomeTecnico || <span style={{color: 'gray', fontStyle:'italic'}}>A definir</span>}</p>
-                    <p><strong>{isSuggestionMode ? 'Sugerido p/:' : 'Agendado:'}</strong> {os.dataAgendamento ? new Date(os.dataAgendamento).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'N/A'}</p>
-                    <p><strong>Início Execução:</strong> {os.dataInicioExecucao ? new Date(os.dataInicioExecucao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'Pendente'}</p>
-                    <p><strong>Fim Execução:</strong> {os.dataFimExecucao ? new Date(os.dataFimExecucao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'Pendente'}</p>
-                    <p><strong>Validação Líder:</strong> {os.dataValidacao ? `${new Date(os.dataValidacao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'})} por ${os.nomeLider || '?'}` : 'Pendente'}</p>
+                    <p><strong>{isSuggestionMode ? 'Sugerido p/:' : 'Agendado:'}</strong> {dtAgendamento ? dtAgendamento.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'N/A'}</p>
+                    <p><strong>Início Execução:</strong> {dtInicio ? dtInicio.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'Pendente'}</p>
+                    <p><strong>Fim Execução:</strong> {dtFim ? dtFim.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'}) : 'Pendente'}</p>
+                    <p><strong>Validação Líder:</strong> {dtValidacao ? `${dtValidacao.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short'})} por ${os.nomeLider || '?'}` : 'Pendente'}</p>
                     {os.observacoesLider && (<p style={{marginTop: '15px', borderLeft: '3px solid #ffc107', paddingLeft: '10px', fontSize: '0.9rem'}}><strong>Obs. Líder:</strong> {os.observacoesLider}</p>)}
                 </section>
 
@@ -422,7 +456,10 @@ function ExecucaoOS() {
                         <table>
                             <thead><tr><th>Nome</th><th>Código</th><th>Qtd.</th><th>Data Baixa</th></tr></thead>
                             <tbody>
-                                {pecasConsumidas.map(p => ( <tr key={p.id}><td>{p.nomePeca}</td><td>{p.codigoControle}</td><td>{p.quantidade}</td><td>{new Date(p.dataBaixa).toLocaleString('pt-BR')}</td></tr> ))}
+                                {pecasConsumidas.map(p => {
+                                    const dtBaixa = parseDateToLocal(p.dataBaixa);
+                                    return ( <tr key={p.id}><td>{p.nomePeca}</td><td>{p.codigoControle}</td><td>{p.quantidade}</td><td>{dtBaixa ? dtBaixa.toLocaleString('pt-BR') : '—'}</td></tr> );
+                                })}
                                 {pecasConsumidas.length === 0 && ( <tr><td colSpan="4" style={{textAlign: 'center'}}>Nenhuma peça consumida.</td></tr> )}
                             </tbody>
                         </table>

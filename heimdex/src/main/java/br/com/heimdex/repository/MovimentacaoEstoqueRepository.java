@@ -21,4 +21,7 @@ public interface MovimentacaoEstoqueRepository extends JpaRepository<Movimentaca
     List<MovimentacaoEstoque> findByDataMovimentacaoBetweenOrderByDataMovimentacaoDesc(
     java.time.LocalDateTime inicio, 
     java.time.LocalDateTime fim);
+
+    // NOVO: busca por equipamento id (retorna movimentos vinculados ao equipamento)
+    List<MovimentacaoEstoque> findByEquipamentoIdOrderByDataMovimentacaoDesc(Long equipamentoId);
 }

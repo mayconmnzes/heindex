@@ -12,11 +12,34 @@ const EQUIPAMENTOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/equipamen
 const USUARIOS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/usuarios`;
 const OS_API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/ordens-servico`;
 
-// Função utilitária para cálculo de datas
+// Função utilitária para parsear datas sem shift de timezone
+function parseDateToLocal(dateStr) {
+    if (!dateStr) return null;
+    if (typeof dateStr === 'object' && dateStr instanceof Date) return dateStr;
+
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d);
+    }
+
+    // YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss (no timezone) -> treat as local
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(dateStr)) {
+        const [datePart, timePart] = dateStr.split('T');
+        const [y, m, d] = datePart.split('-').map(Number);
+        const [hh, mm, ss = '0'] = timePart.split(':');
+        return new Date(y, m - 1, d, Number(hh), Number(mm), Number(ss));
+    }
+
+    // fallback
+    const parsed = new Date(dateStr);
+    return isNaN(parsed) ? null : parsed;
+}
+
+// Função utilitária para cálculo de datas (usa parseDateToLocal para evitar shift)
 function calculateDueDate(lastDateStr, frequency) {
-    if (!lastDateStr || !frequency) return null;
-    const date = new Date(lastDateStr);
-    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
+    const date = parseDateToLocal(lastDateStr);
+    if (!date || !frequency) return null;
 
     switch (frequency) {
         case 'QUINZENAL': date.setDate(date.getDate() + 15); break;
@@ -82,13 +105,15 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
 
     const podePlanejar = equipamento.statusPreventiva !== 'AGENDADA';
 
+    const last = parseDateToLocal(equipamento.dataUltimaPreventiva);
+
     return (
         <div style={cardStyle}> 
             <h5 style={{ margin: 0, color: statusInfo.textColor }}>{equipamento.nome} ({equipamento.codigo})</h5>
             <p style={{ margin: '5px 0', fontWeight: 'bold', color: statusInfo.textColor }}>{statusInfo.message}</p>
             
             <p style={{ margin: '3px 0', fontSize: '0.8rem' }}>
-                Última Preventiva: <strong>{equipamento.dataUltimaPreventiva ? new Date(equipamento.dataUltimaPreventiva).toLocaleDateString('pt-BR') : 'N/A'}</strong>
+                Última Preventiva: <strong>{last ? last.toLocaleDateString('pt-BR') : 'N/A'}</strong>
             </p>
 
             <p style={{ margin: '3px 0', fontSize: '0.8rem', color: '#444' }}>
@@ -255,44 +280,27 @@ function Planejamento() {
         });
     }, [equipamentos, selectedArea, selectedLinha, selectedStatus, selectedMonth, selectedYear]);
 
-    const handleExportPDF = () => {
-        const doc = new jsPDF();
-        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        const mesExtenso = selectedMonth !== '' ? meses[selectedMonth] : 'Todos os Meses';
-
-        doc.setFontSize(18);
-        doc.text(`Planejamento de Manutenção - ${mesExtenso} / ${selectedYear}`, 14, 20);
-        
-        const tableColumn = ["Equipamento", "Tag/Patrimônio", "Área", "Linha", "Status", "Próxima Preventiva"];
-        const tableRows = [];
-
-        filteredEquipamentos.forEach(equip => {
-            const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
-            const rowData = [
-                equip.nome,
-                equip.codigo,
-                equip.nomeArea || 'N/A',
-                equip.nomeLinha || 'N/A',
-                equip.statusPreventiva,
-                dueDate ? dueDate.toLocaleDateString('pt-BR') : 'N/A'
-            ];
-            tableRows.push(rowData);
-        });
-
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 30,
-            theme: 'striped',
-            headStyles: { fillColor: [0, 123, 255] }
-        });
-
-        doc.save(`planejamento_${mesExtenso.toLowerCase()}_${selectedYear}.pdf`);
+    // --- NOVA FUNÇÃO: calcula status quando statusPreventiva não estiver preenchido ---
+    const computeStatusForChart = (equip) => {
+        if (equip?.statusPreventiva) return equip.statusPreventiva;
+        const due = calculateDueDate(equip?.dataUltimaPreventiva, equip?.frequenciaPreventiva);
+        if (!due) return 'OK';
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        due.setHours(0,0,0,0);
+        const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) return 'ATRASADA';
+        if (diffDays <= 7) return 'ATENCAO';
+        return 'OK';
     };
 
     const chartData = useMemo(() => {
         const counts = { OK: 0, ATENCAO: 0, ATRASADA: 0, AGENDADA: 0 };
-        filteredEquipamentos.forEach(e => { if (counts[e.statusPreventiva] !== undefined) counts[e.statusPreventiva]++; });
+        filteredEquipamentos.forEach(e => {
+            const status = computeStatusForChart(e);
+            if (counts[status] !== undefined) counts[status]++;
+            // if status not recognized, ignore
+        });
         return {
             labels: ['OK', 'Atenção', 'Atrasada', 'Planejada'],
             datasets: [{
@@ -323,6 +331,41 @@ function Planejamento() {
             setEquipamentoParaPlanejar(null);
             fetchData();
         } catch (error) { alert('Falha ao criar a Ordem de Serviço.'); }
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const mesExtenso = selectedMonth !== '' ? meses[selectedMonth] : 'Todos os Meses';
+
+        doc.setFontSize(18);
+        doc.text(`Planejamento de Manutenção - ${mesExtenso} / ${selectedYear}`, 14, 20);
+        
+        const tableColumn = ["Equipamento", "Tag/Patrimônio", "Área", "Linha", "Status", "Próxima Preventiva"];
+        const tableRows = [];
+
+        filteredEquipamentos.forEach(equip => {
+            const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
+            const rowData = [
+                equip.nome,
+                equip.codigo,
+                equip.nomeArea || 'N/A',
+                equip.nomeLinha || 'N/A',
+                equip.statusPreventiva || computeStatusForChart(equip),
+                dueDate ? dueDate.toLocaleDateString('pt-BR') : 'N/A'
+            ];
+            tableRows.push(rowData);
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 30,
+            theme: 'striped',
+            headStyles: { fillColor: [0, 123, 255] }
+        });
+
+        doc.save(`planejamento_${mesExtenso.toLowerCase()}_${selectedYear}.pdf`);
     };
 
     if (loading) return <div className="main-content"><h1>Carregando...</h1></div>;
