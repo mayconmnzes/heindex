@@ -25,15 +25,23 @@ public class FillCodigoControleRunner implements CommandLineRunner {
         this.service = service;
     }
 
+    private boolean isInvalid(String s) {
+        if (s == null) return true;
+        String t = s.trim();
+        if (t.isEmpty()) return true;
+        if (t.equalsIgnoreCase("null") || t.equalsIgnoreCase("undefined")) return true;
+        return false;
+    }
+
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        // EXECUTE APENAS UMA VEZ: depois de rodar, remova ou comente esta classe.
+        // EXECUTE APENAS UMA VEZ: depois de rodar, remova ou comente esta classe (@Component).
         List<PecaReposicao> lista = repo.findAll(Sort.by("id")).stream()
-                .filter(p -> p.getCodigoControle() == null || p.getCodigoControle().trim().isEmpty())
+                .filter(p -> isInvalid(p.getCodigoControle()))
                 .collect(Collectors.toList());
 
-        log.info("FillCodigoControleRunner: {} registros a atualizar", lista.size());
+        log.info("FillCodigoControleRunner: {} registros inválidos a atualizar", lista.size());
 
         int updated = 0;
         for (PecaReposicao p : lista) {

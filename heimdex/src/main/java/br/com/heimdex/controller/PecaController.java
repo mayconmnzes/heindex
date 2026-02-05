@@ -32,6 +32,15 @@ public class PecaController {
     @Autowired
     private QrCodeService qrService;
 
+    private boolean isInvalidCodigoControle(String s) {
+        if (s == null) return true;
+        String t = s.trim();
+        if (t.isEmpty()) return true;
+        // tratar casos comuns vindos do front: "null", "undefined"
+        if (t.equalsIgnoreCase("null") || t.equalsIgnoreCase("undefined")) return true;
+        return false;
+    }
+
     @GetMapping("/lookup")
     public ResponseEntity<?> lookupPeca(@RequestParam("code") String code) {
         if (code == null || code.trim().isEmpty()) {
@@ -68,12 +77,19 @@ public class PecaController {
     @PostMapping
     public ResponseEntity<?> createPeca(@RequestBody PecaReposicao pecaDto) {
         log.info("POST /api/pecas recebido, corpo: {}", pecaDto);
-        if (pecaDto.getCodigoControle() == null || pecaDto.getCodigoControle().trim().isEmpty()) {
+
+        // valor recebido (para debug)
+        String recebido = pecaDto == null ? null : pecaDto.getCodigoControle();
+        log.debug("Valor recebido em codigoControle: '{}'", recebido);
+
+        if (isInvalidCodigoControle(recebido)) {
             String novo = pecaService.gerarProximoCodigoControle();
-            log.info("Gerando novo codigo_controle: {}", novo);
+            log.info("Gerando novo codigo_controle: {} (entrada inválida: '{}')", novo, recebido);
             pecaDto.setCodigoControle(novo);
         } else {
-            log.info("CodigoControle recebido: {}", pecaDto.getCodigoControle());
+            log.info("CodigoControle recebido válido: {}", recebido);
+            // garante trimmed
+            pecaDto.setCodigoControle(recebido.trim());
         }
 
         PecaReposicao salvo = pecaReposicaoRepository.save(pecaDto);
