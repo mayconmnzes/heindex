@@ -1020,14 +1020,14 @@ function PecaModule({ pecas, fetchAllData, areas, modelos }) {
                                     </td>
                                     <td>
                                         <img 
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoRequisicao || 'ID-'+peca.id}`} 
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoControle || 'ID-'+peca.id}`} 
                                             width="50" 
                                             alt="qr" 
                                             style={{ cursor: 'zoom-in', border: '1px solid #eee' }}
-                                            onClick={() => setModalImage(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${peca.codigoRequisicao || 'ID-'+peca.id}`)}
+                                            onClick={() => setModalImage(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${peca.codigoControle || 'ID-'+peca.id}`)}
                                         />
                                     </td>
-                                    <td><strong>{peca.nome}</strong><br/><small>{peca.codigoRequisicao}</small></td>
+                                    <td><strong>{peca.nome}</strong><br/><small>{peca.codigoControle}</small></td>
                                     <td>{peca.nomeArea || 'N/A'}</td>
                                     <td>{peca.nomeModeloEquipamento || 'Múltiplos'}</td>
                                     <td style={{ color: peca.estoqueAtual <= peca.estoqueMinimo ? 'red' : 'inherit', fontWeight: 'bold' }}>

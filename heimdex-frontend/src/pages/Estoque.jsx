@@ -120,12 +120,12 @@ function Estoque() {
                 });
             }
 
-            const headers = ["Data/Hora", "Tipo", "Peca", "Cod. Req.", "Quantidade", "Maquina", "Area", "Responsavel"];
+            const headers = ["Data/Hora", "Tipo", "Peca", "Cod. Controle", "Quantidade", "Maquina", "Area", "Responsavel"];
             const rows = dados.map(h => [
                 new Date(h.dataMovimentacao).toLocaleString('pt-BR'),
                 h.tipoMovimentacao,
                 h.nomePeca || "N/A",
-                h.codigoRequisicao || "N/A",
+                h.codigoControle || "N/A",
                 h.quantidade,
                 h.nomeEquipamento || "Geral",
                 h.nomeArea || "N/A",
@@ -150,8 +150,8 @@ function Estoque() {
         const itensCriticos = pecas.filter(p => p.estoqueAtual <= p.estoqueMinimo);
         if (itensCriticos.length === 0) return alert("Nenhum item com estoque crítico!");
         
-        const headers = ["ID", "Nome da Peca", "Codigo Requisicao", "Estoque Atual", "Estoque Minimo", "Area"];
-        const rows = itensCriticos.map(p => [p.id, p.nome, p.codigoRequisicao || "N/A", p.estoqueAtual, p.estoqueMinimo, p.nomeArea || "N/A"]);
+        const headers = ["ID", "Nome da Peca", "Codigo Controle", "Estoque Atual", "Estoque Minimo", "Area"];
+        const rows = itensCriticos.map(p => [p.id, p.nome, p.codigoControle || "N/A", p.estoqueAtual, p.estoqueMinimo, p.nomeArea || "N/A"]);
 
         let csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
         const link = document.createElement("a");
@@ -258,7 +258,7 @@ function Estoque() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                             <tr style={{ background: '#34495e', color: '#0a0a0a' }}>
-                                <th>Foto</th><th>QR Code</th><th>Nome</th><th>Cód. Req.</th><th>Área(s)</th><th>Modelo(s) Associado(s)</th><th>Estoque (A/M)</th><th>Ações</th>
+                                <th>Foto</th><th>QR Code</th><th>Nome</th><th>Cód. Controle</th><th>Área(s)</th><th>Modelo(s) Associado(s)</th><th>Estoque (A/M)</th><th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -281,15 +281,15 @@ function Estoque() {
                                         
                                         <td style={{ textAlign: 'center' }}>
                                             <img 
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoRequisicao || 'ID-'+peca.id}`} 
+                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${peca.codigoControle || 'ID-'+peca.id}`} 
                                                 alt="QR" 
                                                 style={{ width: '40px', cursor: 'zoom-in' }} 
-                                                onClick={() => setModalImage(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${peca.codigoRequisicao || 'ID-'+peca.id}`)}
+                                                onClick={() => setModalImage(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${peca.codigoControle || 'ID-'+peca.id}`)}
                                             />
                                         </td>
                                         
                                         <td><strong>{peca.nome}</strong></td>
-                                        <td>{peca.codigoRequisicao || 'N/A'}</td>
+                                        <td>{peca.codigoControle || 'N/A'}</td>
 
                                         <td style={{ fontSize: '0.8rem' }}>{exibirArea}</td>
                                         <td style={{ fontSize: '0.8rem' }}>{exibirModelo}</td>
