@@ -59,7 +59,7 @@ Após deploy, vá em **Logs** e procure por:
 Após deploy com sucesso:
 - **Login:** admin
 - **Senha:** admin
-- **Email:** admin@heindex.com
+- **Email:** admin@heimdex.com
 
 ## 🆘 Troubleshooting
 

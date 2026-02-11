@@ -28,7 +28,10 @@ public class HeimdexApplication {
             System.out.println("========================================");
             if (isMySQL) {
                 System.out.println("✅ Backend Heimdex conectado ao MySQL (Aiven)");
-                System.out.println("🔗 Database: " + datasourceUrl.replaceAll("password=[^&]*", "password=***"));
+                // Mask passwords in both query string and URL authority formats
+                String maskedUrl = datasourceUrl.replaceAll("password=[^&]*", "password=***")
+                                                .replaceAll(":[^:@]+@", ":***@");
+                System.out.println("🔗 Database: " + maskedUrl);
             } else if (isH2) {
                 System.out.println("⚠️  Backend Heimdex usando banco H2 Local (desenvolvimento)");
                 System.out.println("⚠️  ATENÇÃO: Configure as variáveis DB_URL, DB_USER, DB_PASSWORD no Render!");
@@ -44,7 +47,7 @@ public class HeimdexApplication {
                 admin.setMatricula("admin");
                 admin.setSenha(passwordEncoder.encode("admin"));
                 admin.setPerfil(PerfilUsuario.ADMINISTRADOR.name());
-                admin.setEmail("admin@heindex.com");
+                admin.setEmail("admin@heimdex.com");
                 
                 usuarioRepository.save(admin);
                 System.out.println(">>> ✅ Usuário admin criado com sucesso!");
