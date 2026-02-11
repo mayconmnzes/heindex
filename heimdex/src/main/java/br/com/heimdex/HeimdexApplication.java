@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @SpringBootApplication
@@ -17,25 +18,40 @@ public class HeimdexApplication {
     }
 
     @Bean
-    CommandLineRunner init(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    CommandLineRunner init(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, Environment env) {
         return args -> {
-            if (usuarioRepository.count() == 0) {
+            // Detectar qual banco está sendo usado
+            String datasourceUrl = env.getProperty("spring.datasource.url");
+            boolean isMySQL = datasourceUrl != null && datasourceUrl.contains("mysql");
+            boolean isH2 = datasourceUrl != null && datasourceUrl.contains("h2");
+            
+            System.out.println("========================================");
+            if (isMySQL) {
+                System.out.println("✅ Backend Heimdex conectado ao MySQL (Aiven)");
+                System.out.println("🔗 Database: " + datasourceUrl.replaceAll("password=[^&]*", "password=***"));
+            } else if (isH2) {
+                System.out.println("⚠️  Backend Heimdex usando banco H2 Local (desenvolvimento)");
+                System.out.println("⚠️  ATENÇÃO: Configure as variáveis DB_URL, DB_USER, DB_PASSWORD no Render!");
+            } else {
+                System.out.println("⚠️  Backend Heimdex - Banco não identificado");
+            }
+            System.out.println("========================================");
+            
+            // Criar usuário admin apenas se não existir
+            if (usuarioRepository.findByMatricula("admin").isEmpty()) {
                 Usuario admin = new Usuario();
-                
-                // ✅ CORREÇÃO OBRIGATÓRIA: Adicionando o nome para evitar erro de NULL no H2
-                admin.setNomeCompleto("Administrador do Sistema"); 
-                admin.setMatricula("000001");
-                
-                admin.setEmail("admin@heimdex.com.br");
-                admin.setSenha(passwordEncoder.encode("admin123"));
-                
-                // ✅ Conversão do Enum para String (ajustado conforme sua Model)
-                admin.setPerfil(PerfilUsuario.ADMIN.name()); 
+                admin.setNomeCompleto("Administrador Padrão");
+                admin.setMatricula("admin");
+                admin.setSenha(passwordEncoder.encode("admin"));
+                admin.setPerfil(PerfilUsuario.ADMINISTRADOR.name());
+                admin.setEmail("admin@heindex.com");
                 
                 usuarioRepository.save(admin);
-                
-                // ✅ Mensagem atualizada para o ambiente Local
-                System.out.println("✅ Backend Heimdex iniciado com banco H2 Local!");
+                System.out.println(">>> ✅ Usuário admin criado com sucesso!");
+                System.out.println(">>> 📋 Login: admin");
+                System.out.println(">>> 🔑 Senha: admin");
+            } else {
+                System.out.println(">>> ℹ️  Usuário admin já existe no banco");
             }
         };
     }

@@ -1,7 +1,7 @@
 package br.com.heimdex.model.enums;
 
 public enum PerfilUsuario {
-    ADMIN,
+    ADMINISTRADOR,
     TECNICO,
     LIDER
 }
