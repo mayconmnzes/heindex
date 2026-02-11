@@ -7,6 +7,7 @@ import com.google.zxing.WriterException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
+@Profile("migration")
 public class RegenerateQrRunner implements CommandLineRunner {
 
     private final PecaReposicaoRepository repo;
