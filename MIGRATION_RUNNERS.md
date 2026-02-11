@@ -35,6 +35,6 @@ Ou no IntelliJ/Eclipse:
 
 ## ⚠️ Avisos
 
-- **NÃO** deixe `SPRING_PROFILES_ACTIVE=migration` ativo em produção permanentemente
+- **NÃO** deixe `SPRING_PROFILES_ACTIVE=migration` ativo em produção permanente
 - Esses runners devem executar apenas UMA VEZ para corrigir dados antigos
 - Em bancos novos/vazios, eles não são necessários
