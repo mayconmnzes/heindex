@@ -234,7 +234,7 @@ VALUES (
     'admin',
     '$2a$10$N9qo8uLOickgx2ZrVaL95.MdEH0pQRz4V8WvFn0gYdP3xQz5nXRzm',
     'ADMINISTRADOR',
-    'admin@heindex.com'
+    'admin@heimdex.com'
 );
 
 -- ============================================

@@ -45,7 +45,7 @@ Após executar o script, você poderá fazer login com:
 - **Usuário:** admin
 - **Senha:** admin
 - **Perfil:** ADMINISTRADOR
-- **Email:** admin@heindex.com
+- **Email:** admin@heimdex.com
 
 **IMPORTANTE:** Altere a senha padrão após o primeiro login em ambiente de produção!
 
