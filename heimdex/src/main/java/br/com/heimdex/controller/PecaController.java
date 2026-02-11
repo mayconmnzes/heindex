@@ -47,30 +47,91 @@ public class PecaController {
             return ResponseEntity.badRequest().body("Parâmetro 'code' obrigatório");
         }
         String c = code.trim();
+        
+        log.info("🔍 Buscando peça com código: '{}'", c);
 
-        // 1) busca exata por codigo_controle
-        Optional<PecaReposicao> opt = pecaReposicaoRepository.findByCodigoControleIgnoreCase(c);
-        if (opt.isPresent()) return ResponseEntity.ok(opt.get());
-
-        // 2) busca exata por codigo_requisicao
-        opt = pecaReposicaoRepository.findByCodigoRequisicaoIgnoreCase(c);
-        if (opt.isPresent()) return ResponseEntity.ok(opt.get());
-
-        // 3) busca por nome contendo
-        List<PecaReposicao> byName = pecaReposicaoRepository.findByNomeContainingIgnoreCase(c);
-        if (!byName.isEmpty()) return ResponseEntity.ok(byName);
-
-        // 4) tentativa heurística: limpar prefixos/sufixos comuns (ex: 'QR:' 'http://...' etc)
-        String cleaned = c.replaceAll("https?://[^\\s]+", "").replaceAll("[^A-Za-z0-9\\-_*]", "").trim();
-        if (!cleaned.equals(c)) {
-            opt = pecaReposicaoRepository.findByCodigoControleIgnoreCase(cleaned);
-            if (opt.isPresent()) return ResponseEntity.ok(opt.get());
-            opt = pecaReposicaoRepository.findByCodigoRequisicaoIgnoreCase(cleaned);
-            if (opt.isPresent()) return ResponseEntity.ok(opt.get());
-            byName = pecaReposicaoRepository.findByNomeContainingIgnoreCase(cleaned);
-            if (!byName.isEmpty()) return ResponseEntity.ok(byName);
+        // ========================================
+        // PRIORIDADE 1: Busca por ID numérico
+        // ========================================
+        // Aceita formatos: "ID-19", "PECA-19", "19"
+        String idExtracted = null;
+        
+        // Regex para extrair número de formatos como "ID-19", "PECA-0001", etc
+        if (c.matches("^[A-Za-z]+-\\d+$")) {
+            // Formato: "ID-19", "PECA-0001"
+            idExtracted = c.replaceAll("^[A-Za-z]+-", "");
+        } else if (c.matches("^\\d+$")) {
+            // Formato: "19" (só números)
+            idExtracted = c;
+        }
+        
+        if (idExtracted != null) {
+            try {
+                Long id = Long.parseLong(idExtracted);
+                Optional<PecaReposicao> byId = pecaReposicaoRepository.findById(id);
+                if (byId.isPresent()) {
+                    log.info("✅ Peça encontrada por ID: {}", id);
+                    return ResponseEntity.ok(byId.get());
+                }
+            } catch (NumberFormatException e) {
+                log.warn("⚠️ Não foi possível converter '{}' para ID numérico", idExtracted);
+            }
         }
 
+        // ========================================
+        // PRIORIDADE 2: Busca exata por codigo_controle
+        // ========================================
+        Optional<PecaReposicao> opt = pecaReposicaoRepository.findByCodigoControleIgnoreCase(c);
+        if (opt.isPresent()) {
+            log.info("✅ Peça encontrada por codigo_controle: {}", c);
+            return ResponseEntity.ok(opt.get());
+        }
+
+        // ========================================
+        // PRIORIDADE 3: Busca exata por codigo_requisicao
+        // ========================================
+        opt = pecaReposicaoRepository.findByCodigoRequisicaoIgnoreCase(c);
+        if (opt.isPresent()) {
+            log.info("✅ Peça encontrada por codigo_requisicao: {}", c);
+            return ResponseEntity.ok(opt.get());
+        }
+
+        // ========================================
+        // PRIORIDADE 4: Busca parcial por nome
+        // ========================================
+        List<PecaReposicao> byName = pecaReposicaoRepository.findByNomeContainingIgnoreCase(c);
+        if (!byName.isEmpty()) {
+            log.info("✅ {} peça(s) encontrada(s) por nome contendo: {}", byName.size(), c);
+            return ResponseEntity.ok(byName);
+        }
+
+        // ========================================
+        // PRIORIDADE 5: Limpeza heurística (fallback)
+        // ========================================
+        String cleaned = c.replaceAll("https?://[^\\s]+", "").replaceAll("[^A-Za-z0-9\\-_*]", "").trim();
+        if (!cleaned.equals(c) && !cleaned.isEmpty()) {
+            log.info("🧹 Tentando busca com código limpo: '{}' (original: '{}')", cleaned, c);
+            
+            opt = pecaReposicaoRepository.findByCodigoControleIgnoreCase(cleaned);
+            if (opt.isPresent()) {
+                log.info("✅ Peça encontrada por codigo_controle limpo: {}", cleaned);
+                return ResponseEntity.ok(opt.get());
+            }
+            
+            opt = pecaReposicaoRepository.findByCodigoRequisicaoIgnoreCase(cleaned);
+            if (opt.isPresent()) {
+                log.info("✅ Peça encontrada por codigo_requisicao limpo: {}", cleaned);
+                return ResponseEntity.ok(opt.get());
+            }
+            
+            byName = pecaReposicaoRepository.findByNomeContainingIgnoreCase(cleaned);
+            if (!byName.isEmpty()) {
+                log.info("✅ {} peça(s) encontrada(s) por nome limpo: {}", byName.size(), cleaned);
+                return ResponseEntity.ok(byName);
+            }
+        }
+
+        log.warn("❌ Peça NÃO encontrada para código: '{}'", c);
         return ResponseEntity.status(404).body(Map.of("message", "Peça não encontrada para code: " + code));
     }
 
