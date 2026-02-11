@@ -22,6 +22,12 @@ import java.util.Optional;
 public class PecaController {
 
     private static final Logger log = LoggerFactory.getLogger(PecaController.class);
+    
+    // Regex patterns for ID extraction from QR codes and user input
+    // Matches formats like: "ID-19", "PECA-0001", "PIECE-123"
+    private static final String PREFIXED_ID_PATTERN = "^[A-Za-z]+-\\d+$";
+    // Matches numeric IDs only: "19", "123", "0001"
+    private static final String NUMERIC_ID_PATTERN = "^\\d+$";
 
     @Autowired
     private PecaReposicaoRepository pecaReposicaoRepository;
@@ -56,11 +62,11 @@ public class PecaController {
         // Aceita formatos: "ID-19", "PECA-19", "19"
         String idExtracted = null;
         
-        // Regex para extrair número de formatos como "ID-19", "PECA-0001", etc
-        if (c.matches("^[A-Za-z]+-\\d+$")) {
+        // Extrai número de formatos como "ID-19", "PECA-0001", etc
+        if (c.matches(PREFIXED_ID_PATTERN)) {
             // Formato: "ID-19", "PECA-0001"
             idExtracted = c.replaceAll("^[A-Za-z]+-", "");
-        } else if (c.matches("^\\d+$")) {
+        } else if (c.matches(NUMERIC_ID_PATTERN)) {
             // Formato: "19" (só números)
             idExtracted = c;
         }

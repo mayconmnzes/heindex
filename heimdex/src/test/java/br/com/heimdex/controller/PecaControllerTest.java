@@ -126,20 +126,28 @@ class PecaControllerTest {
     @Test
     @WithMockUser
     void testLookupPriorityIdOverName() throws Exception {
-        // Criar uma segunda peça com nome "123"
+        // Criar uma segunda peça cujo ID numérico será o mesmo que usaremos para busca
+        // Primeiro salvamos para obter o ID
         PecaReposicao peca2 = new PecaReposicao();
-        peca2.setNome("123");
-        peca2.setCodigoControle("CTRL-123");
+        peca2.setNome("Temporary");
+        peca2.setCodigoControle("CTRL-TEMP");
         peca2.setEstoqueAtual(5);
         peca2.setEstoqueMinimo(1);
         peca2 = pecaReposicaoRepository.save(peca2);
+        Long id2 = peca2.getId();
         
-        // Buscar por "123" - deve priorizar busca por ID ao invés de nome
+        // Agora atualizamos o nome da primeira peça para ser igual ao ID da segunda
+        // Isso cria um conflito onde o código poderia ser tanto ID quanto nome
+        testPeca.setNome(id2.toString());
+        pecaReposicaoRepository.save(testPeca);
+        
+        // Buscar pelo número que é tanto um ID válido quanto um nome
+        // A busca deve priorizar ID e retornar peca2 (cujo ID é o número buscado)
         mockMvc.perform(get("/api/pecas/lookup")
-                .param("code", String.valueOf(testPeca.getId()))
+                .param("code", id2.toString())
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(testPeca.getId().intValue())))
-                .andExpect(jsonPath("$.nome", is("Spindle")));
+                .andExpect(jsonPath("$.id", is(id2.intValue())))
+                .andExpect(jsonPath("$.nome", is("Temporary")));
     }
 }
