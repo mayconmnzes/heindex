@@ -52,6 +52,27 @@ function calculateDueDate(lastDateStr, frequency) {
     return date;
 }
 
+// Função CENTRALIZADA para calcular o status real baseado na data atual
+function getCalculatedStatus(equip) {
+    if (equip.statusPreventiva === 'AGENDADA') return 'AGENDADA';
+
+    const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
+    if (!dueDate) return 'OK';
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(dueDate);
+    checkDate.setHours(0, 0, 0, 0);
+
+    if (today > checkDate) return 'ATRASADA';
+
+    const diffTime = checkDate - today;
+    const daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    if (daysRemaining <= 7 && daysRemaining >= 0) return 'ATENCAO';
+
+    return 'OK';
+}
+
 function EquipamentoCard({ equipamento, onPlanejar }) {
     const dataPrevista = useMemo(() => 
         calculateDueDate(equipamento.dataUltimaPreventiva, equipamento.frequenciaPreventiva),
@@ -59,45 +80,32 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
     );
 
     const getStatusInfo = (equip) => {
-        const { statusPreventiva, dataUltimaPreventiva, frequenciaPreventiva } = equip;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); 
+        const statusReal = getCalculatedStatus(equip);
         
-        const dueDate = calculateDueDate(dataUltimaPreventiva, frequenciaPreventiva);
-        if (dueDate) dueDate.setHours(0, 0, 0, 0);
-
-        // Se já estiver agendada, a prioridade visual é o azul (Planejado)
-        if (statusPreventiva === 'AGENDADA') {
+        if (equip.statusPreventiva === 'AGENDADA') {
             return { borderColor: '#007bff', backgroundColor: '#cce5ff', textColor: '#004085', message: 'Preventiva já planejada.' };
         }
 
-        // Lógica de cálculo de atraso manual para garantir que o card fique vermelho
-        if (dueDate && today > dueDate) {
+        if (statusReal === 'ATRASADA') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
+            if (dueDate) dueDate.setHours(0, 0, 0, 0);
             const diffTime = today - dueDate;
             const daysLate = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            const message = `PREVENTIVA ATRASADA! (${daysLate > 0 ? daysLate : 0} dias)`;
-            return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message };
+            return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message: `PREVENTIVA ATRASADA! (${daysLate > 0 ? daysLate : 0} dias)` };
         }
 
-        // Lógica de Atenção (Próxima nos próximos 7 dias)
-        if (dueDate) {
+        if (statusReal === 'ATENCAO') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
             const diffTime = dueDate - today;
             const daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            if (daysRemaining <= 7 && daysRemaining >= 0) {
-                const message = `Preventiva próxima! (${daysRemaining} dias restantes)`;
-                return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message };
-            }
+            return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message: `Preventiva próxima! (${daysRemaining} dias restantes)` };
         }
 
-        // Fallback baseado no status do banco ou padrão Verde
-        switch (statusPreventiva) {
-            case 'ATRASADA':
-                return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message: 'PREVENTIVA ATRASADA!' };
-            case 'ATENCAO':
-                return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message: 'Preventiva próxima!' };
-            default:
-                return { borderColor: '#28a745', backgroundColor: '#d4edda', textColor: '#155724', message: 'Preventiva em Dia' };
-        }
+        return { borderColor: '#28a745', backgroundColor: '#d4edda', textColor: '#155724', message: 'Preventiva em Dia' };
     };
 
     const statusInfo = getStatusInfo(equipamento);
@@ -269,7 +277,10 @@ function Planejamento() {
         return equipamentos.filter(equip => {
             const matchArea = selectedArea ? (equip.nomeArea || 'Sem Área') === selectedArea : true;
             const matchLinha = selectedLinha ? (equip.nomeLinha || 'Sem Linha') === selectedLinha : true;
-            const matchStatus = selectedStatus ? computeStatusForChart(equip) === selectedStatus : true;
+            
+            // CORREÇÃO: Filtra pelo status calculado em tempo real
+            const statusReal = getCalculatedStatus(equip);
+            const matchStatus = selectedStatus ? statusReal === selectedStatus : true;
             
             const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
             let matchDate = true;
@@ -284,23 +295,10 @@ function Planejamento() {
         });
     }, [equipamentos, selectedArea, selectedLinha, selectedStatus, selectedMonth, selectedYear]);
 
-    const computeStatusForChart = (equip) => {
-        if (equip?.statusPreventiva === 'AGENDADA') return 'AGENDADA';
-        const due = calculateDueDate(equip?.dataUltimaPreventiva, equip?.frequenciaPreventiva);
-        if (!due) return 'OK';
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        due.setHours(0,0,0,0);
-        const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return 'ATRASADA';
-        if (diffDays <= 7) return 'ATENCAO';
-        return 'OK';
-    };
-
     const chartData = useMemo(() => {
         const counts = { OK: 0, ATENCAO: 0, ATRASADA: 0, AGENDADA: 0 };
         filteredEquipamentos.forEach(e => {
-            const status = computeStatusForChart(e);
+            const status = getCalculatedStatus(e);
             if (counts[status] !== undefined) counts[status]++;
         });
         return {
@@ -353,7 +351,7 @@ function Planejamento() {
                 equip.codigo,
                 equip.nomeArea || 'N/A',
                 equip.nomeLinha || 'N/A',
-                equip.statusPreventiva || computeStatusForChart(equip),
+                getCalculatedStatus(equip),
                 dueDate ? dueDate.toLocaleDateString('pt-BR') : 'N/A'
             ];
             tableRows.push(rowData);
