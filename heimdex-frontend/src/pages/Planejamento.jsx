@@ -36,7 +36,7 @@ function parseDateToLocal(dateStr) {
     return isNaN(parsed) ? null : parsed;
 }
 
-// Função utilitária para cálculo de datas (usa parseDateToLocal para evitar shift)
+// Função utilitária para cálculo de datas
 function calculateDueDate(lastDateStr, frequency) {
     const date = parseDateToLocal(lastDateStr);
     if (!date || !frequency) return null;
@@ -53,7 +53,6 @@ function calculateDueDate(lastDateStr, frequency) {
 }
 
 function EquipamentoCard({ equipamento, onPlanejar }) {
-    // ✅ CORREÇÃO: Calcula a data prevista para exibição dentro do card
     const dataPrevista = useMemo(() => 
         calculateDueDate(equipamento.dataUltimaPreventiva, equipamento.frequenciaPreventiva),
         [equipamento.dataUltimaPreventiva, equipamento.frequenciaPreventiva]
@@ -66,32 +65,31 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
         
         const dueDate = calculateDueDate(dataUltimaPreventiva, frequenciaPreventiva);
         if (dueDate) dueDate.setHours(0, 0, 0, 0);
-    
-        // Lógica de cálculo de dias
-        let daysDiff = 0;
-        if (dueDate) {
-            const diffTime = today - dueDate;
-            daysDiff = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        }
-    
-        // 1. Se já está agendado, mantém azul (Independente de estar atrasado ou não)
+
+        // Se já estiver agendada, a prioridade visual é o azul (Planejado)
         if (statusPreventiva === 'AGENDADA') {
             return { borderColor: '#007bff', backgroundColor: '#cce5ff', textColor: '#004085', message: 'Preventiva já planejada.' };
         }
-    
-        // 2. Verificação de Atraso (Se a data de hoje for maior que a data prevista)
+
+        // Lógica de cálculo de atraso manual para garantir que o card fique vermelho
         if (dueDate && today > dueDate) {
-            const message = `PREVENTIVA ATRASADA! (${daysDiff} dias)`;
+            const diffTime = today - dueDate;
+            const daysLate = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const message = `PREVENTIVA ATRASADA! (${daysLate > 0 ? daysLate : 0} dias)`;
             return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message };
         }
-    
-        // 3. Verificação de Atenção (Faltando 7 dias ou menos, por exemplo)
-        if (dueDate && daysDiff >= -7 && daysDiff <= 0) {
-            const message = `Preventiva próxima! (${Math.abs(daysDiff)} dias restantes)`;
-            return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message };
+
+        // Lógica de Atenção (Próxima nos próximos 7 dias)
+        if (dueDate) {
+            const diffTime = dueDate - today;
+            const daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            if (daysRemaining <= 7 && daysRemaining >= 0) {
+                const message = `Preventiva próxima! (${daysRemaining} dias restantes)`;
+                return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message };
+            }
         }
-    
-        // 4. Fallback para status do banco ou Verde
+
+        // Fallback baseado no status do banco ou padrão Verde
         switch (statusPreventiva) {
             case 'ATRASADA':
                 return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message: 'PREVENTIVA ATRASADA!' };
@@ -114,7 +112,6 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
     };
 
     const podePlanejar = equipamento.statusPreventiva !== 'AGENDADA';
-
     const last = parseDateToLocal(equipamento.dataUltimaPreventiva);
 
     return (
@@ -151,12 +148,10 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
     );
 }
 
-// MODAL ATUALIZADO PARA MÚLTIPLOS TÉCNICOS
 function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
     const [tecnicosIds, setTecnicosIds] = useState([]); 
     const [dataAgendamento, setDataAgendamento] = useState('');
     
-    // ✅ FUNÇÃO QUE ESTAVA FALTANDO:
     const handleTecnicoChange = (e) => {
         const values = Array.from(e.target.selectedOptions, option => Number(option.value));
         setTecnicosIds(values);
@@ -166,7 +161,6 @@ function PlanejamentoModal({ equipamento, tecnicos, onClose, onSave }) {
         e.preventDefault();
         if (tecnicosIds.length === 0 || !dataAgendamento) return alert("Técnico(s) e Data são obrigatórios.");
 
-        // Tenta pegar o ID do checklist do equipamento
         const idChecklist = equipamento.checklistId || equipamento.checklist_id || equipamento.checklist?.id;
 
         onSave({
@@ -290,9 +284,8 @@ function Planejamento() {
         });
     }, [equipamentos, selectedArea, selectedLinha, selectedStatus, selectedMonth, selectedYear]);
 
-    // --- NOVA FUNÇÃO: calcula status quando statusPreventiva não estiver preenchido ---
     const computeStatusForChart = (equip) => {
-        if (equip?.statusPreventiva) return equip.statusPreventiva;
+        if (equip?.statusPreventiva === 'AGENDADA') return 'AGENDADA';
         const due = calculateDueDate(equip?.dataUltimaPreventiva, equip?.frequenciaPreventiva);
         if (!due) return 'OK';
         const today = new Date();
@@ -309,7 +302,6 @@ function Planejamento() {
         filteredEquipamentos.forEach(e => {
             const status = computeStatusForChart(e);
             if (counts[status] !== undefined) counts[status]++;
-            // if status not recognized, ignore
         });
         return {
             labels: ['OK', 'Atenção', 'Atrasada', 'Planejada'],
