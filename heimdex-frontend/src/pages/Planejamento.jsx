@@ -66,27 +66,37 @@ function EquipamentoCard({ equipamento, onPlanejar }) {
         
         const dueDate = calculateDueDate(dataUltimaPreventiva, frequenciaPreventiva);
         if (dueDate) dueDate.setHours(0, 0, 0, 0);
-
-        let message = '';
+    
+        // Lógica de cálculo de dias
+        let daysDiff = 0;
+        if (dueDate) {
+            const diffTime = today - dueDate;
+            daysDiff = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        }
+    
+        // 1. Se já está agendado, mantém azul (Independente de estar atrasado ou não)
+        if (statusPreventiva === 'AGENDADA') {
+            return { borderColor: '#007bff', backgroundColor: '#cce5ff', textColor: '#004085', message: 'Preventiva já planejada.' };
+        }
+    
+        // 2. Verificação de Atraso (Se a data de hoje for maior que a data prevista)
+        if (dueDate && today > dueDate) {
+            const message = `PREVENTIVA ATRASADA! (${daysDiff} dias)`;
+            return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message };
+        }
+    
+        // 3. Verificação de Atenção (Faltando 7 dias ou menos, por exemplo)
+        if (dueDate && daysDiff >= -7 && daysDiff <= 0) {
+            const message = `Preventiva próxima! (${Math.abs(daysDiff)} dias restantes)`;
+            return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message };
+        }
+    
+        // 4. Fallback para status do banco ou Verde
         switch (statusPreventiva) {
             case 'ATRASADA':
-                let daysLate = 0;
-                if (dueDate) {
-                    const diffTime = today - dueDate;
-                    daysLate = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                }
-                message = `PREVENTIVA ATRASADA! (${daysLate > 0 ? daysLate : 0} dias)`;
-                return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message };
+                return { borderColor: '#dc3545', backgroundColor: '#f8d7da', textColor: '#721c24', message: 'PREVENTIVA ATRASADA!' };
             case 'ATENCAO':
-                let daysRemaining = 0;
-                if (dueDate) {
-                    const diffTime = dueDate - today;
-                    daysRemaining = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                }
-                message = `Preventiva próxima! (${daysRemaining >= 0 ? daysRemaining : 0} dias restantes)`;
-                return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message };
-            case 'AGENDADA':
-                return { borderColor: '#007bff', backgroundColor: '#cce5ff', textColor: '#004085', message: 'Preventiva já planejada.' };
+                return { borderColor: '#ffc107', backgroundColor: '#fff3cd', textColor: '#856404', message: 'Preventiva próxima!' };
             default:
                 return { borderColor: '#28a745', backgroundColor: '#d4edda', textColor: '#155724', message: 'Preventiva em Dia' };
         }
