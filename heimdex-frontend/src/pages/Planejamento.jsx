@@ -269,7 +269,7 @@ function Planejamento() {
         return equipamentos.filter(equip => {
             const matchArea = selectedArea ? (equip.nomeArea || 'Sem Área') === selectedArea : true;
             const matchLinha = selectedLinha ? (equip.nomeLinha || 'Sem Linha') === selectedLinha : true;
-            const matchStatus = selectedStatus ? equip.statusPreventiva === selectedStatus : true;
+            const matchStatus = selectedStatus ? computeStatusForChart(equip) === selectedStatus : true;
             
             const dueDate = calculateDueDate(equip.dataUltimaPreventiva, equip.frequenciaPreventiva);
             let matchDate = true;
