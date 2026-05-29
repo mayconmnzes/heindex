@@ -67,7 +67,7 @@ function App() {
 
   return (
     // Usa BrowserRouter em vez de Router diretamente
-    <BrowserRouter>
+    <BrowserRouter basename="/heindex">
       <div className="App-layout">
         {/* Renderiza Sidebar apenas se autenticado */}
         {isAuthenticated && <Sidebar user={user} />} {/* Passa user pro Sidebar */}
