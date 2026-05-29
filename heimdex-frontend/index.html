@@ -1,13 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>heimdex-frontend</title>
+    <title>Heimdex</title>
+    <script>
+      // GitHub Pages SPA redirect: processa o ?p= gerado pelo 404.html
+      (function () {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+        // Processa o ?p= da query string
+        var query = window.location.search;
+        if (query.indexOf('?p=') === 0 || query.indexOf('&p=') !== -1) {
+          var params = query.slice(1).split('&').reduce(function (p, s) {
+            var r = s.split('=');
+            p[decodeURIComponent(r[0])] = decodeURIComponent(r.slice(1).join('=').replace(/~and~/g, '&'));
+            return p;
+          }, {});
+          if (params.p !== undefined) {
+            window.history.replaceState(
+              null, null,
+              window.location.pathname.split('/').slice(0, 2).join('/') +
+              params.p + (params.q ? '?' + params.q : '') +
+              window.location.hash
+            );
+          }
+        }
+      }());
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
