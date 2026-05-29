@@ -49,7 +49,8 @@ public class WebConfig implements WebMvcConfigurer {
                     "http://localhost:*",
                     "http://127.0.0.1:*",
                     "https://*.onrender.com",
-                    "https://*.vercel.app"
+                    "https://*.vercel.app",
+                    "https://*.github.io"
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
