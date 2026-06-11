@@ -574,7 +574,8 @@ function ChecklistModule({ checklists, fetchChecklists, areas, pecas }) {
         setNome(checklist.nome);
         const area = areas.find(a => a.nome === checklist.areaNome);
         setAreaId(area ? area.id.toString() : '');
-        setItens(checklist.itens || []);
+        // ✅ Remove o id, mantém só a descrição
+        setItens((checklist.itens || []).map(i => ({ descricao: i.descricao })));
     };
 
     const handleChecklistDelete = async (id) => {
