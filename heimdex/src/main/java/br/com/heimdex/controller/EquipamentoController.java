@@ -6,18 +6,19 @@ import br.com.heimdex.model.Checklist;
 import br.com.heimdex.model.Equipamento;
 import br.com.heimdex.model.LinhaDeProducao;
 import br.com.heimdex.model.ModeloEquipamento;
-import br.com.heimdex.model.OrdemServico;
 import br.com.heimdex.model.enums.StatusOrdemServico;
 import br.com.heimdex.repository.*;
 import br.com.heimdex.service.OrdemServicoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @RestController
@@ -33,28 +34,38 @@ public class EquipamentoController {
 
     @GetMapping
     public List<EquipamentoResponseDTO> getAllEquipamentos() {
+        // 🔥 OTIMIZAÇÃO: busca UMA vez só todos os ids com OS preventiva ativa
+        Set<Long> idsComOsAtiva;
+        try {
+            idsComOsAtiva = new HashSet<>(ordemServicoRepository.findEquipamentoIdsComOsAtiva(
+                    "PREVENTIVA",
+                    List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA)
+            ));
+        } catch (Throwable ignored) {
+            idsComOsAtiva = Collections.emptySet();
+        }
+
+        final Set<Long> idsFinal = idsComOsAtiva;
         return equipamentoRepository.findAllWithDetails().stream()
-                .map(this::convertToResponseDTO)
+                .map(e -> convertToResponseDTO(e, idsFinal.contains(e.getId())))
                 .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<EquipamentoResponseDTO> getEquipamentoById(@PathVariable Long id) {
         return equipamentoRepository.findById(id)
-                .map(e -> ResponseEntity.ok(convertToResponseDTO(e)))
+                .map(e -> ResponseEntity.ok(convertToResponseDTO(e, calcStatusIndividual(e))))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<EquipamentoResponseDTO> createEquipamento(@RequestBody EquipamentoRequestDTO dto) {
-        // Validação mínima
         if (dto.getNome() == null || dto.getNome().trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
 
         Equipamento equipamento = convertToEntity(dto);
 
-        // Gera código se não informado e garante unicidade
         String codigo = (dto.getCodigo() != null && !dto.getCodigo().trim().isEmpty())
                 ? dto.getCodigo().trim()
                 : generateBaseCodigo(dto.getNome());
@@ -63,7 +74,7 @@ public class EquipamentoController {
         equipamento.setCodigo(unique);
 
         Equipamento savedEquipamento = equipamentoRepository.save(equipamento);
-        return new ResponseEntity<>(convertToResponseDTO(savedEquipamento), HttpStatus.CREATED);
+        return new ResponseEntity<>(convertToResponseDTO(savedEquipamento, calcStatusIndividual(savedEquipamento)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -74,7 +85,6 @@ public class EquipamentoController {
 
                     String novoCodigo = (dto.getCodigo() == null || dto.getCodigo().trim().isEmpty()) ? null : dto.getCodigo().trim();
 
-                    // Se não enviou novo codigo, gera a partir do nome; garante unicidade (permitindo manter o código atual)
                     if (novoCodigo == null || novoCodigo.isEmpty()) {
                         novoCodigo = generateBaseCodigo(dto.getNome());
                     }
@@ -101,16 +111,28 @@ public class EquipamentoController {
                     }
 
                     Equipamento updated = equipamentoRepository.save(equipamentoExistente);
-                    return ResponseEntity.ok(convertToResponseDTO(updated));
+                    return ResponseEntity.ok(convertToResponseDTO(updated, calcStatusIndividual(updated)));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Helper: calcula status individualmente (usado em getById/create/update, onde é 1 só - sem problema de N+1)
+    private boolean calcStatusIndividual(Equipamento e) {
+        try {
+            return ordemServicoRepository.existsByEquipamentoIdAndTipoManutencaoAndStatusIn(
+                    e.getId(),
+                    "PREVENTIVA",
+                    List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA)
+            );
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     // Conversões entre Entity <-> DTO
     private Equipamento convertToEntity(EquipamentoRequestDTO dto) {
         Equipamento e = new Equipamento();
         e.setNome(dto.getNome());
-        // código será aplicado no create/update para garantir unicidade e não-null
         e.setCriticidade(dto.getCriticidade());
         e.setFrequenciaPreventiva(dto.getFrequenciaPreventiva());
         e.setDataUltimaPreventiva(dto.getDataUltimaPreventiva());
@@ -130,7 +152,8 @@ public class EquipamentoController {
         return e;
     }
 
-    private EquipamentoResponseDTO convertToResponseDTO(Equipamento e) {
+    // 🔥 ALTERADO: recebe o status pronto, em vez de consultar o banco aqui dentro
+    private EquipamentoResponseDTO convertToResponseDTO(Equipamento e, boolean temOsAtiva) {
         EquipamentoResponseDTO dto = new EquipamentoResponseDTO();
         dto.setId(e.getId());
         dto.setNome(e.getNome());
@@ -142,22 +165,8 @@ public class EquipamentoController {
         dto.setFrequenciaPreventiva(e.getFrequenciaPreventiva());
         dto.setDataUltimaPreventiva(e.getDataUltimaPreventiva());
 
-        // Decide statusPreventiva: se houver uma PREVENTIVA AGENDADA ou SUGESTAO para este equipamento,
-        // marca como AGENDADA para que o frontend trate como "programado".
-        try {
-            boolean hasAgendadaOrSugestao = ordemServicoRepository.existsByEquipamentoIdAndTipoManutencaoAndStatusIn(
-                    e.getId(),
-                    "PREVENTIVA",
-                    List.of(StatusOrdemServico.SUGESTAO, StatusOrdemServico.AGENDADA)
-            );
-            if (hasAgendadaOrSugestao) {
-                dto.setStatusPreventiva("AGENDADA");
-            } else {
-                dto.setStatusPreventiva(null);
-            }
-        } catch (Throwable ignored) {
-            dto.setStatusPreventiva(null);
-        }
+        // Mantém o comportamento idêntico: "AGENDADA" se houver OS ativa, senão null
+        dto.setStatusPreventiva(temOsAtiva ? "AGENDADA" : null);
 
         dto.setNomeLinha(e.getLinha() != null ? e.getLinha().getNome() : null);
         dto.setNomeArea(e.getLinha() != null && e.getLinha().getArea() != null ? e.getLinha().getArea().getNome() : null);
@@ -170,39 +179,28 @@ public class EquipamentoController {
     // ---------- Helpers para geração/uniqueness de código ----------
     private String generateBaseCodigo(String nome) {
         if (nome == null) return "EQ";
-        // Remove caracteres não alfanuméricos e deixa em maiúsculas
         String base = nome.replaceAll("[^A-Za-z0-9]", "").toUpperCase();
         if (base.isEmpty()) base = "EQ";
         if (base.length() > 10) base = base.substring(0, 10);
         return base;
     }
 
-    /**
-     * Garante unicidade do código. Se já existir, acrescenta sufixo _1, _2, ...
-     * @param candidate código base
-     * @param currentEquipamentoId quando for atualização, id do equipamento atual (para permitir manter o mesmo código)
-     * @return código único
-     */
     private String ensureUniqueCodigo(String candidate, Long currentEquipamentoId) {
         String tryCode = candidate;
         int suffix = 0;
         while (true) {
             boolean exists = equipamentoRepository.existsByCodigo(tryCode);
-            // Se existe e é o próprio equipamento (no update), aceita
             if (exists) {
                 if (currentEquipamentoId != null) {
-                    // permite se o equipamento com esse código for o mesmo que estamos atualizando
                     Equipamento found = equipamentoRepository.findByCodigo(tryCode).orElse(null);
                     if (found != null && found.getId() != null && found.getId().equals(currentEquipamentoId)) {
                         return tryCode;
                     }
                 }
-                // senão tenta próximo sufixo
                 suffix++;
                 tryCode = candidate + "_" + suffix;
                 continue;
             }
-            // não existe -> único
             return tryCode;
         }
     }
