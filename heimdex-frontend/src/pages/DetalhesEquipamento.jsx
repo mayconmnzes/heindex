@@ -148,7 +148,62 @@ function DetalhesEquipamento() {
                                                 )) : <li>Nenhum item registrado</li>}
                                             </ul>
                                         </div>
-
+                    {/* ===== CHECKLIST EXECUTADO (Auditoria) ===== */}
+                    {(() => {
+                        const itensCl = item.checklist?.itens || [];
+                        const resultados = item.resultados || [];
+                        const descMap = {};
+                        itensCl.forEach(it => { descMap[it.id] = it.descricao; });
+                    
+                        let linhas = [];
+                        if (resultados.length > 0) {
+                            linhas = resultados.map(r => ({
+                                descricao: descMap[r.itemTemplateId] || `Item #${r.itemTemplateId}`,
+                                status: r.status || 'PENDENTE',
+                                observacao: r.observacao || ''
+                            }));
+                        } else if (itensCl.length > 0) {
+                            linhas = itensCl.map(it => ({ descricao: it.descricao, status: '—', observacao: '' }));
+                        }
+                    
+                        if (linhas.length === 0) return null;
+                    
+                        const corStatus = (s) => {
+                            const t = String(s || '').toUpperCase();
+                            if (t === 'OK' || t === 'CONFORME') return '#28a745';
+                            if (t === 'NAO_CONFORME' || t === 'NAO_CONFORMIDADE') return '#dc3545';
+                            if (t === 'NAO_APLICAVEL') return '#6c757d';
+                            return '#856404';
+                        };
+                    
+                        return (
+                            <div style={{ background: '#eef6ff', padding: '10px', borderRadius: '8px', marginTop: '10px', border: '1px solid #cfe2ff' }}>
+                                <strong>✅ Checklist executado{item.checklist?.nome ? `: ${item.checklist.nome}` : ''}</strong>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '8px', fontSize: '0.82rem' }}>
+                                    <thead>
+                                        <tr style={{ textAlign: 'left', borderBottom: '1px solid #cfe2ff' }}>
+                                            <th style={{ padding: '4px' }}>Item Verificado</th>
+                                            <th style={{ padding: '4px', width: '110px' }}>Status</th>
+                                            <th style={{ padding: '4px' }}>Observação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {linhas.map((l, i) => (
+                                            <tr key={i} style={{ borderBottom: '1px solid #e3eefc' }}>
+                                                <td style={{ padding: '4px' }}>{l.descricao}</td>
+                                                <td style={{ padding: '4px' }}>
+                                                    <span style={{ background: corStatus(l.status), color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                                                        {String(l.status).replace(/_/g, ' ')}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '4px', color: '#555' }}>{l.observacao || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })()}
                                         {item.fotosEvidencia?.length > 0 && (
                                             <div style={{ marginTop: '15px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                                 {item.fotosEvidencia.map((url, i) => (
