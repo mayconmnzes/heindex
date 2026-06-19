@@ -23,7 +23,8 @@ public class Equipamento {
     @Column(nullable = false, unique = true)
     private String codigo;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    // ✅ ALTERADO: EAGER -> LAZY (cortar cascata checklist->itens->peças)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "checklist_id")
     private Checklist checklist;
 
