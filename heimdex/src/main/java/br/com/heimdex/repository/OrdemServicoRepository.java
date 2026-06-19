@@ -52,4 +52,9 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
            "WHERE os.equipamento.id = :id " +
            "ORDER BY os.dataAgendamento DESC")
     List<OrdemServico> findByEquipamentoIdOrderByDataAgendamentoDesc(Long id);
+// 🔥 OTIMIZAÇÃO: busca de uma vez TODOS os ids de equipamentos que têm OS preventiva ativa
+    // (elimina o N+1 de perguntar equipamento por equipamento)
+    @Query("SELECT DISTINCT os.equipamento.id FROM OrdemServico os " +
+           "WHERE os.tipoManutencao = :tipo AND os.status IN :status")
+    List<Long> findEquipamentoIdsComOsAtiva(String tipo, List<StatusOrdemServico> status);
 }
